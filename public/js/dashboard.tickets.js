@@ -282,7 +282,6 @@
 
     const canClose = ticket.status !== "closed";
     const canReopen = ticket.status === "closed";
-    const ticketSlaStatus = getTicketSlaStatus(ticket);
     const ticketLabels = (Array.isArray(ticket.labels) ? ticket.labels : [])
       .slice(0, 8)
       .map(
@@ -330,7 +329,8 @@
         </label>
         <label class="field ticket-labels-field">
           <span>${escapeHtml(t("tickets_labels"))}</span>
-          <input class="input" id="ticketLabels" type="text" maxlength="200" value="${escapeHtml((Array.isArray(ticket.labels) ? ticket.labels : []).join(", "))}" placeholder="${escapeHtml(t("tickets_labels_placeholder"))}" />
+          <input class="input" id="ticketLabels" type="text" maxlength="200" value="${escapeHtml((Array.isArray(ticket.labels) ? ticket.labels : []).join(", "))}" list="ticketLabelSuggestions" placeholder="${escapeHtml(t("tickets_labels_placeholder"))}" />
+          <datalist id="ticketLabelSuggestions"></datalist>
           <small class="hint">${escapeHtml(t("tickets_labels_hint"))}</small>
         </label>
         <div class="ticket-management-form__actions">
@@ -379,6 +379,26 @@
 
     const guildId = getGuildId();
     const ticketId = ticket._id;
+
+    async function loadTicketLabelSuggestions() {
+      const datalist = panel.querySelector("#ticketLabelSuggestions");
+      if (!datalist) return;
+      try {
+        const response = await apiGet(
+          `/guilds/${encodeURIComponent(guildId)}/config`,
+        );
+        const labels = Array.isArray(response?.config?.ticketLabels)
+          ? response.config.ticketLabels
+          : [];
+        datalist.innerHTML = labels
+          .map((label) => `<option value="${escapeHtml(label)}"></option>`)
+          .join("");
+      } catch {
+        datalist.innerHTML = "";
+      }
+    }
+    loadTicketLabelSuggestions();
+
     const assigneeSearch = panel.querySelector("#ticketAssigneeSearch");
     const assigneeId = panel.querySelector("#ticketAssigneeId");
     const assigneeResults = panel.querySelector("#ticketAssigneeResults");
@@ -868,7 +888,9 @@
         const el = document.getElementById(id);
         if (!el) return;
         if (el.tagName === "SELECT") {
-          const option = Array.from(el.options).find((opt) => opt.value === value);
+          const option = Array.from(el.options).find(
+            (opt) => opt.value === value,
+          );
           if (option) {
             el.value = value;
           }

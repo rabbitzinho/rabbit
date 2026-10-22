@@ -90,6 +90,7 @@ function registerConfigRoutes({
                 logs: [],
                 config: [],
               },
+              ticketLabels: [],
               trust: trustConfig,
             },
           });
@@ -114,6 +115,9 @@ function registerConfigRoutes({
               logs: [],
               config: [],
             },
+            ticketLabels: Array.isArray(doc.ticketLabels)
+              ? doc.ticketLabels
+              : [],
             trust: trustConfig,
           },
         });
@@ -150,6 +154,7 @@ function registerConfigRoutes({
           ticketThreadChannelId,
           staffRoleIds,
           staffRolesByFeature,
+          ticketLabels,
           language,
           timezone,
         } = req.body || {};
@@ -170,6 +175,16 @@ function registerConfigRoutes({
           payload.staffRoleIds = staffRoleIds
             .map((id) => sanitizeId(id))
             .filter(Boolean);
+        }
+
+        if (Array.isArray(ticketLabels)) {
+          payload.ticketLabels = Array.from(
+            new Set(
+              ticketLabels
+                .map((label) => String(label || "").trim())
+                .filter((label) => label.length > 0 && label.length <= 24),
+            ),
+          );
         }
 
         if (
@@ -208,6 +223,7 @@ function registerConfigRoutes({
           ticketThreadChannelId: payload.ticketThreadChannelId,
           staffRoleIds: payload.staffRoleIds,
           staffRolesByFeature: payload.staffRolesByFeature,
+          ticketLabels: payload.ticketLabels,
           language: payload.language,
           timezone: payload.timezone,
         };
@@ -261,6 +277,9 @@ function registerConfigRoutes({
               logs: [],
               config: [],
             },
+            ticketLabels: Array.isArray(doc.ticketLabels)
+              ? doc.ticketLabels
+              : [],
             trust: await getTrustForGuild(guildId),
           },
         });

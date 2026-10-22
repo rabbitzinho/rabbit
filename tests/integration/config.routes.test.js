@@ -108,6 +108,38 @@ test("guild configuration stores server locale and feature-specific staff roles"
   }
 });
 
+test("guild configuration persists default ticket labels", async () => {
+  const app = await createConfigApp({ role: "GUILD_ADMIN" });
+  try {
+    const response = await fetch(
+      app.baseUrl + "/api/guilds/" + GUILD_ID + "/config",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticketLabels: ["billing", "bug", "urgent"],
+        }),
+      },
+    );
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.deepEqual(body.config.ticketLabels, ["billing", "bug", "urgent"]);
+
+    const read = await fetch(
+      app.baseUrl + "/api/guilds/" + GUILD_ID + "/config",
+    );
+    assert.equal(read.status, 200);
+    const readBody = await read.json();
+    assert.deepEqual(readBody.config.ticketLabels, [
+      "billing",
+      "bug",
+      "urgent",
+    ]);
+  } finally {
+    await stopApp(app.server);
+  }
+});
+
 test("bot owner can read and save maintenance mode for the selected guild", async () => {
   const app = await createConfigApp({ role: "BOT_OWNER" });
   try {

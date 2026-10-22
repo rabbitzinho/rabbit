@@ -11,6 +11,7 @@ const GuildConfigSchema = z
     dashboardLogChannelId: z.string().regex(/^\d+$/).nullable().optional(),
     ticketThreadChannelId: z.string().regex(/^\d+$/).nullable().optional(),
     staffRoleIds: z.array(z.string().regex(/^\d+$/)).max(100).optional(),
+    ticketLabels: z.array(z.string().trim().min(1).max(24)).max(25).optional(),
     staffRolesByFeature: z
       .object({
         tickets: z.array(z.string().regex(/^\d+$/)).max(100).optional(),

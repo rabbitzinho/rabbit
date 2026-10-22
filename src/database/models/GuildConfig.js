@@ -27,6 +27,12 @@ const guildConfigSchema = new Schema(
       default: [],
     },
 
+    // Etiquetas sugeridas para Tickets neste servidor.
+    ticketLabels: {
+      type: [String],
+      default: [],
+    },
+
     // Roles de staff por funcionalidade (se vazio, cai em staffRoleIds)
     staffRolesByFeature: {
       tickets: { type: [String], default: [] },
