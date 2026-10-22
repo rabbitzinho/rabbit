@@ -200,6 +200,8 @@
   }
 
   async function forceLogout(opts) {
+    if (opts && opts.redirect && !confirmLeavingDrafts()) return false;
+    if (opts && opts.redirect) skipBeforeUnloadDraftWarning = true;
     try {
       // Server-side logout clears HttpOnly cookies (cannot be cleared from JS directly).
       await fetch(API_BASE + "/auth/logout", {
@@ -1114,20 +1116,43 @@
     });
   }
 
-  function confirmLeavingGameNewsDraft() {
+  var skipBeforeUnloadDraftWarning = false;
+
+  function getUnsavedDraftState() {
     var dashboard = window.OzarkDashboard;
-    if (
-      !dashboard ||
-      typeof dashboard.hasUnsavedGameNewsChanges !== "function" ||
-      !dashboard.hasUnsavedGameNewsChanges()
-    ) {
-      return true;
-    }
-    return window.confirm(t("gamenews_leave_unsaved_confirm"));
+    return {
+      gameNews: !!(
+        dashboard &&
+        typeof dashboard.hasUnsavedGameNewsChanges === "function" &&
+        dashboard.hasUnsavedGameNewsChanges()
+      ),
+      features: !!(
+        dashboard &&
+        typeof dashboard.hasUnsavedFeatureDrafts === "function" &&
+        dashboard.hasUnsavedFeatureDrafts()
+      ),
+      config: !!state.configDirty,
+      trust: !!state.trustDirty,
+    };
+  }
+
+  function confirmLeavingDrafts() {
+    var drafts = getUnsavedDraftState();
+    var hasGameNewsDrafts = drafts.gameNews;
+    var hasFeatureDrafts = drafts.features;
+    var hasOtherDrafts = drafts.config || drafts.trust;
+    if (!hasGameNewsDrafts && !hasFeatureDrafts && !hasOtherDrafts) return true;
+    var key =
+      hasOtherDrafts || (hasGameNewsDrafts && hasFeatureDrafts)
+        ? "dashboard_leave_unsaved_confirm"
+        : hasFeatureDrafts
+          ? "features_leave_unsaved_confirm"
+          : "gamenews_leave_unsaved_confirm";
+    return window.confirm(t(key));
   }
 
   function setTab(name) {
-    if (name !== state.currentTab && !confirmLeavingGameNewsDraft()) return;
+    if (name !== state.currentTab && !confirmLeavingDrafts()) return;
 
     if (
       name === "premium-admin" &&
@@ -4010,7 +4035,7 @@
           var v = guildPicker.value || "";
           if (
             String(v || "") !== String(previousGuildId || "") &&
-            !confirmLeavingGameNewsDraft()
+            !confirmLeavingDrafts()
           ) {
             guildPicker.value = previousGuildId || "";
             return;
@@ -4453,6 +4478,20 @@
         })();
       });
     }
+
+    window.addEventListener("beforeunload", function (event) {
+      if (skipBeforeUnloadDraftWarning) return;
+      var drafts = getUnsavedDraftState();
+      if (
+        !drafts.gameNews &&
+        !drafts.features &&
+        !drafts.config &&
+        !drafts.trust
+      )
+        return;
+      event.preventDefault();
+      event.returnValue = "";
+    });
 
     // Login form
     var loginScreen = document.getElementById("loginScreen");

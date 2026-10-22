@@ -250,10 +250,12 @@
       </div>
 
       <form class="ticket-management-form" id="ticketManagementForm">
-        <label class="field">
-          <span>${escapeHtml(t("tickets_assignee_id"))}</span>
-          <input class="input" id="ticketAssigneeId" type="text" inputmode="numeric" pattern="[0-9]{10,32}" maxlength="32" value="${escapeHtml(ticket.assignedToId || "")}" placeholder="${escapeHtml(t("tickets_assignee_placeholder"))}" />
-        </label>
+        <div class="field ticket-assignee-field">
+          <label for="ticketAssigneeSearch">${escapeHtml(t("tickets_assignment"))}</label>
+          <input class="input" id="ticketAssigneeSearch" type="search" role="combobox" aria-autocomplete="list" aria-controls="ticketAssigneeResults" aria-expanded="false" autocomplete="off" value="${escapeHtml(ticket.assignedToName || ticket.assignedToId || "")}" placeholder="${escapeHtml(t("tickets_assignee_placeholder"))}" />
+          <input id="ticketAssigneeId" type="hidden" value="${escapeHtml(ticket.assignedToId || "")}" />
+          <div class="ticket-assignee-results hidden" id="ticketAssigneeResults" role="listbox"></div>
+        </div>
         <label class="field">
           <span>${escapeHtml(t("tickets_priority"))}</span>
           <select class="select" id="ticketPriority">
@@ -311,6 +313,76 @@
 
     const guildId = getGuildId();
     const ticketId = ticket._id;
+    const assigneeSearch = panel.querySelector("#ticketAssigneeSearch");
+    const assigneeId = panel.querySelector("#ticketAssigneeId");
+    const assigneeResults = panel.querySelector("#ticketAssigneeResults");
+    let assigneeSearchTimer = null;
+    let assigneeRequestSequence = 0;
+
+    if (assigneeSearch && assigneeResults && assigneeId) {
+      assigneeSearch.addEventListener("input", () => {
+        assigneeId.value = "";
+        assigneeResults.replaceChildren();
+        assigneeResults.classList.add("hidden");
+        assigneeSearch.setAttribute("aria-expanded", "false");
+        const query = assigneeSearch.value.trim();
+        if (query.length < 2) return;
+        clearTimeout(assigneeSearchTimer);
+        assigneeSearchTimer = setTimeout(async () => {
+          const sequence = ++assigneeRequestSequence;
+          try {
+            const result = await apiGet(
+              `/tickets/assignees?guildId=${encodeURIComponent(guildId)}&q=${encodeURIComponent(query)}`,
+            );
+            if (
+              sequence !== assigneeRequestSequence ||
+              assigneeSearch.value.trim() !== query
+            )
+              return;
+            const items =
+              result && Array.isArray(result.items) ? result.items : [];
+            if (!items.length) {
+              const empty = document.createElement("div");
+              empty.className = "empty";
+              empty.textContent = t("tickets_assignee_no_results");
+              assigneeResults.appendChild(empty);
+            } else {
+              items.forEach((member) => {
+                const option = document.createElement("button");
+                option.type = "button";
+                option.className = "ticket-assignee-option";
+                option.setAttribute("role", "option");
+                option.textContent = member.name;
+                option.addEventListener("click", () => {
+                  assigneeSearch.value = member.name;
+                  assigneeId.value = member.id;
+                  assigneeResults.classList.add("hidden");
+                  assigneeSearch.setAttribute("aria-expanded", "false");
+                });
+                assigneeResults.appendChild(option);
+              });
+            }
+            assigneeResults.classList.remove("hidden");
+            assigneeSearch.setAttribute("aria-expanded", "true");
+          } catch {
+            assigneeResults.classList.add("hidden");
+            assigneeSearch.setAttribute("aria-expanded", "false");
+          }
+        }, 250);
+      });
+      assigneeSearch.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          assigneeResults.classList.add("hidden");
+          assigneeSearch.setAttribute("aria-expanded", "false");
+        } else if (event.key === "ArrowDown") {
+          const firstOption = assigneeResults.querySelector("button");
+          if (firstOption) {
+            event.preventDefault();
+            firstOption.focus();
+          }
+        }
+      });
+    }
 
     const managementForm = panel.querySelector("#ticketManagementForm");
     if (managementForm) {
@@ -318,6 +390,16 @@
         event.preventDefault();
         const submit = managementForm.querySelector('button[type="submit"]');
         const status = panel.querySelector("#ticketManagementStatus");
+        const assigneeQuery = panel
+          .querySelector("#ticketAssigneeSearch")
+          .value.trim();
+        const selectedAssigneeId = panel
+          .querySelector("#ticketAssigneeId")
+          .value.trim();
+        if (assigneeQuery && !selectedAssigneeId) {
+          toast(t("tickets_assignee_select_hint"), { type: "warn" });
+          return;
+        }
         if (submit) submit.disabled = true;
         if (status) status.textContent = t("premium_admin_saving");
         try {
@@ -325,9 +407,7 @@
             `/tickets/${encodeURIComponent(ticketId)}/manage`,
             {
               guildId,
-              assignedToId: panel
-                .querySelector("#ticketAssigneeId")
-                .value.trim(),
+              assignedToId: selectedAssigneeId,
               priority: panel.querySelector("#ticketPriority").value,
               slaHours: Number(panel.querySelector("#ticketSlaHours").value),
             },
@@ -572,6 +652,12 @@
 
       const filterEl = document.getElementById("ticketsStatusFilter");
       const status = filterEl ? filterEl.value || "open" : "open";
+      const priorityEl = document.getElementById("ticketsPriorityFilter");
+      const priority = priorityEl ? priorityEl.value || "all" : "all";
+      const sortEl = document.getElementById("ticketsSortFilter");
+      const sort = sortEl ? sortEl.value || "recent" : "recent";
+      const assigneeEl = document.getElementById("ticketsAssigneeFilter");
+      const assignee = assigneeEl ? assigneeEl.value.trim() : "";
       const q = getSearchQuery();
 
       if (reset) {
@@ -586,8 +672,14 @@
         ? `&cursor=${encodeURIComponent(state.ticketsNextCursor)}`
         : "";
       const qParam = q ? `&q=${encodeURIComponent(q)}` : "";
+      const priorityParam =
+        priority !== "all" ? `&priority=${encodeURIComponent(priority)}` : "";
+      const sortParam = sort === "sla" ? "&sort=sla" : "";
+      const assigneeParam = assignee
+        ? `&assignee=${encodeURIComponent(assignee)}`
+        : "";
       const res = await apiGet(
-        `/tickets?guildId=${encodeURIComponent(guildId)}&status=${encodeURIComponent(status)}&limit=30${cursor}${qParam}`,
+        `/tickets?guildId=${encodeURIComponent(guildId)}&status=${encodeURIComponent(status)}&limit=30${cursor}${qParam}${priorityParam}${assigneeParam}${sortParam}`,
       );
       if (
         requestSequence !== _ticketsRequestSequence ||
@@ -628,6 +720,20 @@
 
     const filterEl = document.getElementById("ticketsStatusFilter");
     if (filterEl) filterEl.addEventListener("change", () => loadTickets(true));
+    const priorityEl = document.getElementById("ticketsPriorityFilter");
+    if (priorityEl)
+      priorityEl.addEventListener("change", () => loadTickets(true));
+    const sortEl = document.getElementById("ticketsSortFilter");
+    if (sortEl) sortEl.addEventListener("change", () => loadTickets(true));
+
+    const assigneeFilter = document.getElementById("ticketsAssigneeFilter");
+    if (assigneeFilter) {
+      let assigneeFilterTimer = null;
+      assigneeFilter.addEventListener("input", () => {
+        clearTimeout(assigneeFilterTimer);
+        assigneeFilterTimer = setTimeout(() => loadTickets(true), 250);
+      });
+    }
 
     const searchEl = document.getElementById("ticketsSearch");
     if (searchEl) {

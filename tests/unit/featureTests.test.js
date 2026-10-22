@@ -81,3 +81,10 @@ test("autoModeration simulation reports when the draft is disabled", async () =>
   eq(result.info, "autoModerationDisabled");
   eq(result.data.word, null);
 });
+
+test("poll feature test reports that no test action is available", async () => {
+  const result = await runFeatureTest({ feature: "polls" });
+
+  eq(result.ok, false);
+  eq(result.error, "TEST_NOT_AVAILABLE");
+});

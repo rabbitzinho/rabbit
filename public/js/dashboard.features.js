@@ -717,6 +717,25 @@
   var current = {}; // Valores carregados da API (por funcionalidade).
   var configuredFeatures = {};
   var activeFeatureFilter = "all";
+  var featureTestActionKeys = {
+    autoModeration: "features_test_simulate",
+    antiSpam: "features_test_validate",
+    autoKick: "features_test_validate",
+    polls: "features_test_how_to",
+    twitch: "features_test_check",
+  };
+  var featureTestConfirmationKeys = {
+    messageLogs: "features_test_send_confirm",
+    reactionRoles: "features_test_reaction_roles_confirm",
+    serverStats: "features_test_stats_confirm",
+    levels: "features_test_send_confirm",
+    starboard: "features_test_send_confirm",
+    verification: "features_test_send_confirm",
+    tickets: "features_test_send_confirm",
+    welcome: "features_test_send_confirm",
+    goodbye: "features_test_send_confirm",
+    memes: "features_test_send_confirm",
+  };
   var diagnosisStorageKey = "rabbit.featureDiagnosis.v1";
   var diagnosisResults = (function () {
     try {
@@ -1121,6 +1140,9 @@
     missing_stats_metric: function (params) {
       return t("features_diagnosis_issue_missing_stats_metric", params);
     },
+    missing_automod_rules: function (params) {
+      return t("features_diagnosis_issue_missing_automod_rules", params);
+    },
     bot_member_unavailable: function (params) {
       return t("features_diagnosis_issue_bot_member_unavailable", params);
     },
@@ -1475,7 +1497,7 @@
       esc(t("common_save")) +
       "</button>" +
       '<button class="btn xs" type="button" data-role="test">' +
-      esc(t("features_test")) +
+      esc(t(featureTestActionKeys[feature.key] || "features_test_send")) +
       "</button>" +
       '<span class="hint" data-role="status"></span>' +
       "</div>" +
@@ -2120,10 +2142,16 @@
   async function testFeature(key) {
     var gid = guildId();
     if (!gid) return;
+    if (key === "polls") {
+      notify(t("features_test_info_polls"), { type: "info" });
+      return;
+    }
 
     var card = cardFor(key);
     var btn = card ? card.querySelector('[data-role="test"]') : null;
     var statusEl = card ? card.querySelector('[data-role="status"]') : null;
+    var confirmationKey = featureTestConfirmationKeys[key];
+    if (confirmationKey && !window.confirm(t(confirmationKey))) return;
     if (btn) btn.disabled = true;
 
     try {
@@ -2286,4 +2314,8 @@
   NS.loadFeatures = loadFeatures;
   NS.applyPremiumState = applyPremiumState;
   NS.toggleFeatureCard = toggleCardDetails;
+  NS.hasUnsavedFeatureDrafts = function () {
+    var grid = byId("featuresGrid");
+    return !!(grid && grid.querySelector('.feature-card[data-dirty="true"]'));
+  };
 })();

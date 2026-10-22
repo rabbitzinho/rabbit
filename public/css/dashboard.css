@@ -3473,6 +3473,52 @@ details[open] > .details-summary:before {
   width: 110px;
 }
 
+#ticketsPriorityFilter {
+  width: 140px;
+}
+
+#ticketsAssigneeFilter {
+  flex: 0 1 190px;
+  min-width: 150px;
+}
+
+.ticket-assignee-field {
+  position: relative;
+}
+
+.ticket-assignee-results {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  box-shadow: 0 8px 24px var(--black-35);
+}
+
+.ticket-assignee-option {
+  display: block;
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border: 0;
+  border-bottom: 1px solid var(--white-6);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ticket-assignee-option:hover,
+.ticket-assignee-option:focus-visible {
+  background: var(--accent-12);
+  outline: none;
+}
+
 /* Numeric compact inputs look better right-aligned */
 .input.is-number {
   text-align: right;

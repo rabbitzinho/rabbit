@@ -330,7 +330,18 @@ test("feature diagnostics report missing setup and Discord permissions", async (
     requireGuildAccess: () => passthrough,
     sanitizeId,
     GuildConfig: {
-      findOne: () => ({ lean: async () => ({ features: { memes: config } }) }),
+      findOne: () => ({
+        lean: async () => ({
+          features: {
+            memes: config,
+            autoModeration: {
+              enabled: true,
+              bannedWordsPt: "",
+              bannedWordsEn: "",
+            },
+          },
+        }),
+      }),
     },
     getClient: () => ({
       guilds: { fetch: async () => guild },
@@ -361,6 +372,18 @@ test("feature diagnostics report missing setup and Discord permissions", async (
     assert.ok(
       disabledTwitch.issues.some(
         (issue) => issue.code === "missing_twitch_credentials",
+      ),
+    );
+
+    const autoModerationResponse = await fetch(
+      app.baseUrl + `/api/features/autoModeration/diagnose?guildId=${guildId}`,
+    );
+    assert.equal(autoModerationResponse.status, 200);
+    const autoModeration = (await autoModerationResponse.json()).diagnosis;
+    assert.equal(autoModeration.status, "incomplete");
+    assert.ok(
+      autoModeration.issues.some(
+        (issue) => issue.code === "missing_automod_rules",
       ),
     );
   } finally {

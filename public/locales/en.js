@@ -598,7 +598,7 @@ window.OzarkLocales.en = {
   skip_to_content: "Skip to content",
   subtabs_aria_label: "Feature sections",
   tab_config: "Server settings",
-  tab_logs: "Moderation",
+  tab_logs: "Moderation & support",
   tab_overview: "Overview",
   tab_user: "Members",
   tabs_aria_label: "Dashboard sections",
@@ -657,6 +657,15 @@ window.OzarkLocales.en = {
   tickets_filter_open: "Open",
   tickets_filter_closed: "Closed",
   tickets_filter_all: "All",
+  tickets_priority_all: "Any priority",
+  tickets_priority_filter_label: "Filter by priority",
+  tickets_sort_filter_label: "Sort tickets",
+  tickets_sort_recent: "Newest",
+  tickets_sort_sla: "SLA deadline",
+  tickets_assignee_filter_label: "Filter by assignee",
+  tickets_assignee_filter_placeholder: "Filter by assignee",
+  tickets_assignee_no_results: "No eligible staff found.",
+  tickets_assignee_select_hint: "Choose a staff member from the results.",
   tickets_search_placeholder: "Search by ticket number, member, or subject…",
   tickets_load_more: "Load more",
   tickets_select_guild: "Select a server to view its support tickets.",
@@ -756,7 +765,7 @@ window.OzarkLocales.en = {
   tickets_audit_closed: "Ticket closed",
   tickets_assignment: "Assigned to",
   tickets_assignee_id: "Assignee Discord ID",
-  tickets_assignee_placeholder: "Discord user ID",
+  tickets_assignee_placeholder: "Search staff by name",
   tickets_closed: "Ticket closed.",
   tickets_close_confirm: "Close this ticket?",
   tickets_reopened: "Ticket reopened.",
@@ -848,6 +857,8 @@ window.OzarkLocales.en = {
   channels_group_announcements: "Announcements",
   channels_group_threads: "Threads",
   giveaways_trigger_ok: "Check started",
+  giveaways_trigger_confirm:
+    "This will check for eligible offers and may publish new posts to the configured channel. Continue?",
   giveaways_trigger_fail: "Check failed",
   bot_not_installed:
     'The bot is not installed in this server yet. Use "Add bot" to install it and try again.',
@@ -896,6 +907,8 @@ window.OzarkLocales.en = {
   giveaways_only_games_hint:
     "Includes games only; in-game items and beta access are excluded.",
   giveaways_test: "Send test",
+  giveaways_test_confirm:
+    "This will publish a visible test embed to the selected channel. Continue?",
   giveaways_preview_disabled: "Enable it to see the preview.",
   giveaways_err_channel: "Select a publish channel.",
   giveaways_preview_free: "Free",
@@ -942,6 +955,8 @@ window.OzarkLocales.en = {
     "Set TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET on the bot server.",
   features_diagnosis_issue_missing_stats_metric:
     "Enable at least one server statistics metric.",
+  features_diagnosis_issue_missing_automod_rules:
+    "Add at least one banned word or phrase before enabling AutoMod.",
   features_diagnosis_issue_bot_member_unavailable:
     "The bot's server member could not be checked.",
   features_diagnosis_issue_permission_missing:
@@ -1122,8 +1137,23 @@ window.OzarkLocales.en = {
   features_stats_leaves: "Template: leaves (7d)",
   features_stats_show_leaves: "Show leaves (7d)",
   features_test: "Test",
+  features_test_send: "Send test",
+  features_test_simulate: "Simulate",
+  features_test_validate: "Save & validate",
+  features_test_check: "Save & check connection",
+  features_test_how_to: "How to use",
   features_test_ok: "Test sent.",
   features_test_error: "Could not run the test.",
+  features_test_send_confirm:
+    "This will save the current settings and send a visible test message to the configured Discord channel. Continue?",
+  features_test_reaction_roles_confirm:
+    "This will save the current settings and publish an interactive test panel. Members who react may receive configured roles. Continue?",
+  features_test_stats_confirm:
+    "This will save the current settings and update the configured server statistics channels in Discord. Continue?",
+  features_leave_unsaved_confirm:
+    "This feature has unsaved changes. Leave without saving?",
+  dashboard_leave_unsaved_confirm:
+    "There are unsaved changes in dashboard configuration, Trust, GameNews, or a feature card. Leave without saving?",
   features_test_info_polls:
     "Polls are created with the /poll command in the server.",
   features_test_info_autoKick: "Auto-kick acts while the switch is on.",

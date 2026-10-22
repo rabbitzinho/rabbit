@@ -1,6 +1,7 @@
 // src/dashboard/routes/tickets.js
 
 const { sendServerError } = require("./_errors");
+const { PermissionsBitField } = require("discord.js");
 const {
   getGuild,
   getCachedChannel,
@@ -69,6 +70,81 @@ function registerTicketsRoutes(opts) {
   // GET /api/tickets?guildId=...&status=open|closed|all&q=...&limit=...&cursor=...
   // -----------------------------
   app.get(
+    "/api/tickets/assignees",
+    requireDashboardAuth,
+    canManageTickets,
+    guardGuildQuery,
+    rateLimit({
+      windowMs: 60_000,
+      max: 60,
+      keyPrefix: "rl:tickets:assignees:",
+    }),
+    async (req, res) => {
+      try {
+        const guildId = String(req.query.guildId || "").trim();
+        const query = String(req.query.q || "").trim();
+        if (!/^\d{10,32}$/.test(guildId))
+          return res.status(400).json({ ok: false, error: "INVALID_GUILD_ID" });
+        if (query.length < 2) return res.json({ ok: true, items: [] });
+
+        const client = _getClient ? _getClient() : null;
+        const guild = getGuild(client, guildId);
+        if (!guild)
+          return res.status(404).json({ ok: false, error: "GUILD_NOT_FOUND" });
+
+        let members;
+        try {
+          members = await guild.members.fetch({ query, limit: 100 });
+        } catch {
+          const normalizedQuery = query.toLowerCase();
+          members = guild.members.cache.filter((member) =>
+            String(member.displayName || member.user?.username || "")
+              .toLowerCase()
+              .includes(normalizedQuery),
+          );
+        }
+
+        const models = _getModels ? _getModels() : {};
+        const config = models.GuildConfig
+          ? await models.GuildConfig.findOne({ guildId }).lean()
+          : null;
+        const featureRoles = config?.staffRolesByFeature?.tickets;
+        const staffRoleIds = new Set(
+          (Array.isArray(featureRoles) && featureRoles.length
+            ? featureRoles
+            : config?.staffRoleIds || []
+          ).map(String),
+        );
+        const items = Array.from(members.values())
+          .filter((member) => {
+            if (!member || member.user?.bot) return false;
+            const isServerAdmin = member.permissions?.has(
+              PermissionsBitField.Flags.Administrator,
+            );
+            const hasStaffRole = Array.from(
+              member.roles?.cache?.keys?.() || [],
+            ).some((roleId) => staffRoleIds.has(String(roleId)));
+            return isServerAdmin || hasStaffRole;
+          })
+          .map((member) => ({
+            id: String(member.id),
+            name:
+              member.displayName ||
+              member.user?.globalName ||
+              member.user?.username ||
+              String(member.id),
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .slice(0, 25);
+
+        return res.json({ ok: true, items });
+      } catch (err) {
+        return sendServerError(res, "GET /api/tickets/assignees", err);
+      }
+    },
+  );
+
+  app.get(
     "/api/tickets",
     requireDashboardAuth,
     canManageTickets,
@@ -99,6 +175,12 @@ function registerTicketsRoutes(opts) {
               ? "closed"
               : "open";
         const q = (req.query.q || "").toString().trim();
+        const priority = (req.query.priority || "all")
+          .toString()
+          .trim()
+          .toLowerCase();
+        const assignee = (req.query.assignee || "").toString().trim();
+        const sortBySla = String(req.query.sort || "") === "sla";
         const cursor = (req.query.cursor || "").toString().trim();
 
         let limit = Number(req.query.limit || 50);
@@ -108,6 +190,11 @@ function registerTicketsRoutes(opts) {
         const query = { guildId };
         if (status !== "all") query.status = status;
         const and = [];
+        if (priority === "normal") {
+          and.push({ $or: [{ priority: "normal" }, { priority: null }] });
+        } else if (["low", "high", "urgent"].includes(priority)) {
+          query.priority = priority;
+        }
 
         if (q) {
           // Basic search: ticketNumber exact, userId exact, username/subject partial
@@ -122,8 +209,17 @@ function registerTicketsRoutes(opts) {
           and.push({ $or: or });
         }
 
-        // Cursor pagination (deterministic): we sort by createdAt desc, then _id desc.
-        if (cursor) {
+        if (assignee) {
+          const re = new RegExp(escapeRegExp(assignee.slice(0, 80)), "i");
+          and.push(
+            /^\d{10,32}$/.test(assignee)
+              ? { assignedToId: assignee }
+              : { assignedToName: re },
+          );
+        }
+
+        // Preserve creation-time pagination unless SLA ordering was requested.
+        if (cursor && !sortBySla) {
           const parts = cursor.split("|");
           const cursorDate = parts[0] ? new Date(parts[0]) : null;
           const cursorId = parts[1] || null;
@@ -140,6 +236,61 @@ function registerTicketsRoutes(opts) {
         }
 
         if (and.length) query.$and = and;
+
+        if (sortBySla) {
+          const noDeadline = new Date("9999-12-31T23:59:59.999Z");
+          const pipeline = [
+            { $match: query },
+            {
+              $addFields: {
+                ticketSlaSortAt: {
+                  $cond: [
+                    { $eq: ["$status", "closed"] },
+                    noDeadline,
+                    { $ifNull: ["$slaDueAt", noDeadline] },
+                  ],
+                },
+                ticketSlaSortId: { $toString: "$_id" },
+              },
+            },
+          ];
+          if (cursor) {
+            const [cursorValue, cursorId] = cursor.split("|");
+            const cursorDate = new Date(cursorValue);
+            if (!Number.isNaN(cursorDate.getTime()) && cursorId) {
+              pipeline.push({
+                $match: {
+                  $or: [
+                    { ticketSlaSortAt: { $gt: cursorDate } },
+                    {
+                      $and: [
+                        { ticketSlaSortAt: cursorDate },
+                        { ticketSlaSortId: { $gt: cursorId } },
+                      ],
+                    },
+                  ],
+                },
+              });
+            }
+          }
+          pipeline.push(
+            { $sort: { ticketSlaSortAt: 1, ticketSlaSortId: 1 } },
+            { $limit: limit + 1 },
+          );
+          const result = await TicketModel.aggregate(pipeline);
+          const hasMore = result.length > limit;
+          const items = result.slice(0, limit);
+          let nextCursor = null;
+          if (hasMore && items.length) {
+            const last = items[items.length - 1];
+            nextCursor = `${new Date(last.ticketSlaSortAt).toISOString()}|${last.ticketSlaSortId}`;
+          }
+          items.forEach((item) => {
+            delete item.ticketSlaSortAt;
+            delete item.ticketSlaSortId;
+          });
+          return res.json({ ok: true, items, nextCursor });
+        }
 
         const items = await TicketModel.find(query)
           .sort({ createdAt: -1, _id: -1 })

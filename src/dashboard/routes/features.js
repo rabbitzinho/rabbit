@@ -111,6 +111,14 @@ async function diagnoseFeature({ client, guild, feature, config }) {
     }
   }
   if (
+    feature === "autoModeration" &&
+    value.enabled === true &&
+    !String(value.bannedWordsPt || "").trim() &&
+    !String(value.bannedWordsEn || "").trim()
+  ) {
+    addIssue("missing_automod_rules", { field: "bannedWordsEn" });
+  }
+  if (
     feature === "serverStats" &&
     value.showMembers !== true &&
     value.showJoins !== true &&

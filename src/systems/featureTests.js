@@ -308,8 +308,7 @@ async function runFeatureTest({ client, guild, feature, config, testMessage }) {
     }
 
     case "polls":
-      // As enquetes são criadas por slash command no servidor.
-      return { ok: true, info: "polls" };
+      return { ok: false, error: "TEST_NOT_AVAILABLE" };
 
     default:
       return { ok: false, error: "TEST_NOT_AVAILABLE" };

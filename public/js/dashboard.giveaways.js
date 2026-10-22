@@ -141,6 +141,7 @@
   async function triggerGiveawaysNow() {
     const guildId = getGuildId();
     if (!guildId) return;
+    if (!window.confirm(t("giveaways_trigger_confirm"))) return;
     try {
       await apiPost(
         "/giveaways/trigger?guildId=" + encodeURIComponent(guildId),
@@ -672,6 +673,7 @@
       });
       return;
     }
+    if (!window.confirm(t("giveaways_test_confirm"))) return;
     const platforms = readChecks("giveawaysPlatforms");
     const platform = platforms[0] || "steam";
     await apiPost("/giveaways/test", { guildId, channelId, platform });

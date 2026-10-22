@@ -68,7 +68,8 @@
           </button>
         </div>
         <p class="login-access-hint" data-i18n="login_access_hint">
-          Discord handles authentication. Server access requires administrator permissions.
+          Discord handles authentication. Server access requires administrator
+          permissions.
         </p>
         <div class="login-error" id="loginError"></div>
       </div>
@@ -162,7 +163,11 @@
               data-i18n-aria-label="admin_menu_label"
               aria-label="Admin menu"
             >
-              <img id="badgeProfileAvatar" class="discord-avatar hidden" alt="" />
+              <img
+                id="badgeProfileAvatar"
+                class="discord-avatar hidden"
+                alt=""
+              />
               <span data-role="profile-label"></span>
             </button>
             <div class="prefs-menu__panel hidden" id="prefsPanel" role="menu">
@@ -232,8 +237,14 @@
               >Discord account</span
             >
             <div class="account-profile-dialog__identity">
-              <img id="accountProfileAvatar" class="discord-avatar hidden" alt="" />
-              <h2 id="accountProfileTitle" data-i18n="profile_title">Account</h2>
+              <img
+                id="accountProfileAvatar"
+                class="discord-avatar hidden"
+                alt=""
+              />
+              <h2 id="accountProfileTitle" data-i18n="profile_title">
+                Account
+              </h2>
             </div>
           </div>
           <button
@@ -382,7 +393,7 @@
               stroke-linejoin="round"
             />
           </svg>
-          <span data-i18n="tab_logs">Moderação</span>
+          <span data-i18n="tab_logs">Moderação e suporte</span>
         </button>
         <button
           class="tab"
@@ -1254,6 +1265,56 @@
                           Todos
                         </option>
                       </select>
+                      <select
+                        id="ticketsPriorityFilter"
+                        class="select xs"
+                        data-i18n-aria-label="tickets_priority_filter_label"
+                        aria-label="Filter by priority"
+                      >
+                        <option value="all" data-i18n="tickets_priority_all">
+                          Any priority
+                        </option>
+                        <option
+                          value="urgent"
+                          data-i18n="tickets_priority_urgent"
+                        >
+                          Urgent
+                        </option>
+                        <option value="high" data-i18n="tickets_priority_high">
+                          High
+                        </option>
+                        <option
+                          value="normal"
+                          data-i18n="tickets_priority_normal"
+                        >
+                          Normal
+                        </option>
+                        <option value="low" data-i18n="tickets_priority_low">
+                          Low
+                        </option>
+                      </select>
+                      <select
+                        id="ticketsSortFilter"
+                        class="select xs"
+                        data-i18n-aria-label="tickets_sort_filter_label"
+                        aria-label="Sort tickets"
+                      >
+                        <option value="recent" data-i18n="tickets_sort_recent">
+                          Newest
+                        </option>
+                        <option value="sla" data-i18n="tickets_sort_sla">
+                          SLA deadline
+                        </option>
+                      </select>
+                      <input
+                        id="ticketsAssigneeFilter"
+                        class="input md"
+                        type="search"
+                        data-i18n-aria-label="tickets_assignee_filter_label"
+                        aria-label="Filter by assignee"
+                        data-i18n-placeholder="tickets_assignee_filter_placeholder"
+                        placeholder="Filter by assignee"
+                      />
                       <button
                         id="btnReloadTickets"
                         class="btn xs"

@@ -32,6 +32,7 @@ test("ticket management routes do not require a Premium license", () => {
   });
 
   const managementRoutes = [
+    "GET /api/tickets/assignees",
     "GET /api/tickets",
     "POST /api/tickets/:ticketId/manage",
     "GET /api/tickets/:ticketId/audit",
@@ -48,6 +49,278 @@ test("ticket management routes do not require a Premium license", () => {
       `${route} must not use the Premium guard`,
     );
   }
+});
+
+test("ticket list applies priority and assignee filters before pagination", async () => {
+  const routes = new Map();
+  const passThrough = (req, res, next) => next();
+  let capturedQuery;
+  const app = {
+    get(path, ...handlers) {
+      routes.set("GET " + path, handlers);
+    },
+    post(path, ...handlers) {
+      routes.set("POST " + path, handlers);
+    },
+  };
+  registerTicketsRoutes({
+    app,
+    requireDashboardAuth: passThrough,
+    requirePerm: () => passThrough,
+    requireGuildAccess: () => passThrough,
+    rateLimit: () => passThrough,
+    _getModels: () => ({
+      TicketModel: {
+        find(query) {
+          capturedQuery = query;
+          const chain = {
+            sort() {
+              return chain;
+            },
+            limit() {
+              return chain;
+            },
+            lean: async () => [],
+          };
+          return chain;
+        },
+      },
+    }),
+  });
+
+  const response = {
+    statusCode: 200,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    },
+  };
+  await routes.get("GET /api/tickets").at(-1)(
+    {
+      query: {
+        guildId: "12345678901",
+        status: "all",
+        priority: "urgent",
+        assignee: "support",
+        limit: "10",
+      },
+    },
+    response,
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(capturedQuery.guildId, "12345678901");
+  assert.equal(capturedQuery.priority, "urgent");
+  assert.ok(capturedQuery.$and[0].assignedToName instanceof RegExp);
+  assert.equal(
+    capturedQuery.$and[0].assignedToName.test("Support Staff"),
+    true,
+  );
+});
+
+test("normal priority filter includes tickets without a stored priority", async () => {
+  const routes = new Map();
+  const passThrough = (req, res, next) => next();
+  let capturedQuery;
+  const app = {
+    get(path, ...handlers) {
+      routes.set("GET " + path, handlers);
+    },
+    post(path, ...handlers) {
+      routes.set("POST " + path, handlers);
+    },
+  };
+  registerTicketsRoutes({
+    app,
+    requireDashboardAuth: passThrough,
+    requirePerm: () => passThrough,
+    requireGuildAccess: () => passThrough,
+    rateLimit: () => passThrough,
+    _getModels: () => ({
+      TicketModel: {
+        find(query) {
+          capturedQuery = query;
+          const chain = {
+            sort() {
+              return chain;
+            },
+            limit() {
+              return chain;
+            },
+            lean: async () => [],
+          };
+          return chain;
+        },
+      },
+    }),
+  });
+  const response = {
+    statusCode: 200,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    },
+  };
+  await routes.get("GET /api/tickets").at(-1)(
+    { query: { guildId: "12345678901", status: "all", priority: "normal" } },
+    response,
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(capturedQuery.$and[0].$or, [
+    { priority: "normal" },
+    { priority: null },
+  ]);
+});
+
+test("SLA ticket ordering returns a stable cursor and hides helper fields", async () => {
+  const routes = new Map();
+  const passThrough = (req, res, next) => next();
+  const dueAt = new Date("2026-10-23T12:00:00.000Z");
+  let capturedPipeline;
+  const app = {
+    get(path, ...handlers) {
+      routes.set("GET " + path, handlers);
+    },
+    post(path, ...handlers) {
+      routes.set("POST " + path, handlers);
+    },
+  };
+  registerTicketsRoutes({
+    app,
+    requireDashboardAuth: passThrough,
+    requirePerm: () => passThrough,
+    requireGuildAccess: () => passThrough,
+    rateLimit: () => passThrough,
+    _getModels: () => ({
+      TicketModel: {
+        aggregate(pipeline) {
+          capturedPipeline = pipeline;
+          return Promise.resolve([
+            {
+              _id: "ticket-1",
+              ticketSlaSortAt: dueAt,
+              ticketSlaSortId: "ticket-1",
+            },
+            {
+              _id: "ticket-2",
+              ticketSlaSortAt: new Date(dueAt.getTime() + 60_000),
+              ticketSlaSortId: "ticket-2",
+            },
+          ]);
+        },
+      },
+    }),
+  });
+  const response = {
+    statusCode: 200,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    },
+  };
+  await routes.get("GET /api/tickets").at(-1)(
+    {
+      query: {
+        guildId: "12345678901",
+        status: "open",
+        sort: "sla",
+        limit: "1",
+      },
+    },
+    response,
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(capturedPipeline.at(-2).$sort.ticketSlaSortAt, 1);
+  assert.equal(response.body.items.length, 1);
+  assert.equal(response.body.items[0]._id, "ticket-1");
+  assert.equal(response.body.items[0].ticketSlaSortAt, undefined);
+  assert.equal(response.body.nextCursor, `${dueAt.toISOString()}|ticket-1`);
+});
+
+test("ticket assignee search returns only ticket staff and server admins", async () => {
+  const routes = new Map();
+  const passThrough = (req, res, next) => next();
+  const guildId = "12345678901";
+  const makeMember = (id, name, roleIds, isAdmin, isBot = false) => ({
+    id,
+    displayName: name,
+    user: { username: name, bot: isBot },
+    roles: { cache: new Map(roleIds.map((roleId) => [roleId, {}])) },
+    permissions: { has: () => isAdmin },
+  });
+  const guild = {
+    members: {
+      fetch: async () =>
+        new Map([
+          ["1", makeMember("1", "Ticket Staff", ["ticket-role"], false)],
+          ["2", makeMember("2", "General Staff", ["general-role"], false)],
+          ["3", makeMember("3", "Server Admin", [], true)],
+          ["4", makeMember("4", "Bot", ["ticket-role"], false, true)],
+        ]),
+    },
+  };
+  const app = {
+    get(path, ...handlers) {
+      routes.set("GET " + path, handlers);
+    },
+    post(path, ...handlers) {
+      routes.set("POST " + path, handlers);
+    },
+  };
+  registerTicketsRoutes({
+    app,
+    requireDashboardAuth: passThrough,
+    requirePerm: () => passThrough,
+    requireGuildAccess: () => passThrough,
+    rateLimit: () => passThrough,
+    _getClient: () => ({ guilds: { cache: { get: () => guild } } }),
+    _getModels: () => ({
+      GuildConfig: {
+        findOne: () => ({
+          lean: async () => ({
+            staffRoleIds: ["general-role"],
+            staffRolesByFeature: { tickets: ["ticket-role"] },
+          }),
+        }),
+      },
+    }),
+  });
+
+  const response = {
+    statusCode: 200,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    },
+  };
+  await routes.get("GET /api/tickets/assignees").at(-1)(
+    { query: { guildId, q: "sta" } },
+    response,
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(
+    response.body.items.map((member) => member.id),
+    ["3", "1"],
+  );
 });
 
 test("ticket management updates assignment, priority, and SLA in its guild scope", async () => {

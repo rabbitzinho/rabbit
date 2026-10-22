@@ -618,7 +618,7 @@ window.OzarkLocales.pt = {
   skip_to_content: "Saltar para o conteúdo",
   subtabs_aria_label: "Secções de funcionalidades",
   tab_config: "Definições do servidor",
-  tab_logs: "Moderação",
+  tab_logs: "Moderação e suporte",
   tab_overview: "Visão geral",
   tab_user: "Membros",
   tabs_aria_label: "Secções do painel",
@@ -678,6 +678,15 @@ window.OzarkLocales.pt = {
   tickets_filter_open: "Abertos",
   tickets_filter_closed: "Fechados",
   tickets_filter_all: "Todos",
+  tickets_priority_all: "Qualquer prioridade",
+  tickets_priority_filter_label: "Filtrar por prioridade",
+  tickets_sort_filter_label: "Ordenar tickets",
+  tickets_sort_recent: "Mais recentes",
+  tickets_sort_sla: "Prazo SLA",
+  tickets_assignee_filter_label: "Filtrar por responsável",
+  tickets_assignee_filter_placeholder: "Filtrar por responsável",
+  tickets_assignee_no_results: "Não foram encontrados membros da equipa.",
+  tickets_assignee_select_hint: "Seleciona um membro da equipa nos resultados.",
   tickets_search_placeholder: "Pesquisar por número, membro ou assunto…",
   tickets_load_more: "Carregar mais",
   tickets_select_guild:
@@ -781,7 +790,7 @@ window.OzarkLocales.pt = {
   tickets_audit_closed: "Ticket fechado",
   tickets_assignment: "Atribuído a",
   tickets_assignee_id: "ID Discord do responsável",
-  tickets_assignee_placeholder: "ID do utilizador Discord",
+  tickets_assignee_placeholder: "Pesquisar equipa pelo nome",
   tickets_closed: "Ticket fechado.",
   tickets_close_confirm: "Queres fechar este ticket?",
   tickets_reopened: "Ticket reaberto.",
@@ -873,6 +882,8 @@ window.OzarkLocales.pt = {
   channels_group_announcements: "Anúncios",
   channels_group_threads: "Threads",
   giveaways_trigger_ok: "Verificação iniciada",
+  giveaways_trigger_confirm:
+    "A verificação pode publicar novas ofertas no canal configurado. Continuar?",
   giveaways_trigger_fail: "Falha ao verificar",
   bot_not_installed:
     'O bot ainda não está neste servidor. Usa "Adicionar bot" para o instalar e tenta novamente.',
@@ -922,6 +933,8 @@ window.OzarkLocales.pt = {
   giveaways_only_games_hint:
     "Inclui apenas jogos; exclui itens digitais e acesso a versões beta.",
   giveaways_test: "Enviar teste",
+  giveaways_test_confirm:
+    "Será publicado um embed de teste visível no canal selecionado. Continuar?",
   giveaways_preview_disabled: "Ativa para ver a pré-visualização.",
   giveaways_err_channel: "Seleciona um canal de publicação.",
   giveaways_preview_free: "Grátis",
@@ -968,6 +981,8 @@ window.OzarkLocales.pt = {
     "Define TWITCH_CLIENT_ID e TWITCH_CLIENT_SECRET no servidor do bot.",
   features_diagnosis_issue_missing_stats_metric:
     "Ativa pelo menos uma métrica de estatísticas do servidor.",
+  features_diagnosis_issue_missing_automod_rules:
+    "Adiciona pelo menos uma palavra ou expressão antes de ativar o AutoMod.",
   features_diagnosis_issue_bot_member_unavailable:
     "Não foi possível verificar a presença do bot no servidor.",
   features_diagnosis_issue_permission_missing:
@@ -1153,8 +1168,23 @@ window.OzarkLocales.pt = {
   features_stats_leaves: "Modelo: saídas (7d)",
   features_stats_show_leaves: "Mostrar saídas (7d)",
   features_test: "Testar",
+  features_test_send: "Enviar teste",
+  features_test_simulate: "Simular",
+  features_test_validate: "Guardar e validar",
+  features_test_check: "Guardar e verificar ligação",
+  features_test_how_to: "Como usar",
   features_test_ok: "Teste enviado.",
   features_test_error: "Não foi possível executar o teste.",
+  features_test_send_confirm:
+    "A configuração atual será guardada e será enviada uma mensagem de teste visível para o canal Discord configurado. Continuar?",
+  features_test_reaction_roles_confirm:
+    "A configuração atual será guardada e será publicado um painel de teste interativo. Quem reagir poderá receber os cargos configurados. Continuar?",
+  features_test_stats_confirm:
+    "A configuração atual será guardada e os canais de estatísticas serão atualizados no Discord. Continuar?",
+  features_leave_unsaved_confirm:
+    "Esta funcionalidade tem alterações por guardar. Sair sem guardar?",
+  dashboard_leave_unsaved_confirm:
+    "Existem alterações por guardar na configuração, Trust, GameNews ou num cartão de funcionalidade. Sair sem guardar?",
   features_test_info_polls:
     "As enquetes são criadas com o comando /poll no servidor.",
   features_test_info_autoKick:
