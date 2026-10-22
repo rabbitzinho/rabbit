@@ -337,6 +337,8 @@ test("ticket management updates assignment, priority, and SLA in its guild scope
     displayName: "Support Staff",
     user: { username: "staff" },
   };
+  let updateCalls = 0;
+  let auditCalls = 0;
   const client = {
     guilds: {
       cache: {
@@ -370,12 +372,15 @@ test("ticket management updates assignment, priority, and SLA in its guild scope
     requireGuildAccess: () => passThrough,
     rateLimit: () => passThrough,
     getActorFromRequest: () => "staff-1",
-    recordAudit: async () => {},
+    recordAudit: async () => {
+      auditCalls += 1;
+    },
     _getClient: () => client,
     _getModels: () => ({
       TicketModel: {
         findById: () => ({ lean: async () => ticket }),
         updateOne: async (filter, update) => {
+          updateCalls += 1;
           assert.equal(filter.guildId, ticket.guildId);
           if (update.$set) Object.assign(ticket, update.$set);
           const activityEvents = update.$push?.activity?.$each || [];
@@ -426,6 +431,30 @@ test("ticket management updates assignment, priority, and SLA in its guild scope
   assert.deepEqual(ticket.activity[0].details.labels, ["Bug", "Support"]);
   assert.ok(ticket.slaDueAt instanceof Date);
   assert.equal(ticket.metadataUpdatedById, "staff-1");
+
+  const initialDueAt = ticket.slaDueAt;
+  await handler(
+    {
+      params: { ticketId: ticket._id },
+      body: {
+        guildId: ticket.guildId,
+        assignedToId: assigneeId,
+        priority: "high",
+        slaHours: 4,
+        labels: ["Bug", "Support"],
+      },
+      dashboardUser: {
+        allowedGuildIds: [ticket.guildId],
+        selectedGuildId: ticket.guildId,
+      },
+    },
+    response,
+  );
+
+  assert.equal(updateCalls, 1);
+  assert.equal(auditCalls, 1);
+  assert.equal(ticket.activity.length, 1);
+  assert.equal(ticket.slaDueAt, initialDueAt);
 });
 
 test("ticket audit returns management and reply events without message content", async () => {

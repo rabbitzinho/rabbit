@@ -68,6 +68,17 @@ function registerTicketsRoutes(opts) {
     }
   }
 
+  function createTicketActivityEvent(req, actorId, action, details) {
+    return {
+      action,
+      actorId: String(actorId || "dashboard").slice(0, 64),
+      actorUsername:
+        String(req?.dashboardUser?.username || "").slice(0, 64) || null,
+      createdAt: new Date(),
+      details: details || null,
+    };
+  }
+
   async function appendTicketActivity(
     TicketModel,
     ticketId,
@@ -77,17 +88,16 @@ function registerTicketsRoutes(opts) {
     action,
     details,
   ) {
-    const event = {
-      action,
-      actorId: String(actorId || "dashboard").slice(0, 64),
-      actorUsername:
-        String(req?.dashboardUser?.username || "").slice(0, 64) || null,
-      createdAt: new Date(),
-      details: details || null,
-    };
     await TicketModel.updateOne(
       { _id: ticketId, guildId },
-      { $push: { activity: { $each: [event], $slice: -100 } } },
+      {
+        $push: {
+          activity: {
+            $each: [createTicketActivityEvent(req, actorId, action, details)],
+            $slice: -100,
+          },
+        },
+      },
     );
   }
 
@@ -433,46 +443,71 @@ function registerTicketsRoutes(opts) {
         const now = new Date();
         const actor =
           (getActorFromRequest && getActorFromRequest(req)) || "dashboard";
-        const updatedMetadata = {
-          assignedToId: rawAssigneeId || null,
-          assignedToName,
-          priority,
-          slaHours,
-          slaDueAt: slaHours
+        const nextAssigneeId = rawAssigneeId || null;
+        const nextPriority = priority;
+        const changes = {};
+        const updatedMetadata = {};
+
+        if (
+          String(ticket.assignedToId || "") !== String(nextAssigneeId || "") ||
+          String(ticket.assignedToName || "") !== String(assignedToName || "")
+        ) {
+          updatedMetadata.assignedToId = nextAssigneeId;
+          updatedMetadata.assignedToName = assignedToName;
+          changes.assignedTo = assignedToName || null;
+        }
+        if (String(ticket.priority || "normal") !== nextPriority) {
+          updatedMetadata.priority = nextPriority;
+          changes.priority = nextPriority;
+        }
+        if (Number(ticket.slaHours || 0) !== slaHours) {
+          updatedMetadata.slaHours = slaHours;
+          updatedMetadata.slaDueAt = slaHours
             ? new Date(now.getTime() + slaHours * 60 * 60 * 1000)
-            : null,
-          metadataUpdatedAt: now,
-          metadataUpdatedById: String(actor),
-        };
-        if (labels !== undefined) updatedMetadata.labels = labels;
-        await TicketModel.updateOne(
-          { _id: ticketId, guildId },
-          { $set: updatedMetadata },
-        );
-        await appendTicketActivity(
-          TicketModel,
-          ticketId,
-          guildId,
-          req,
-          actor,
-          "metadata_updated",
-          {
-            assignedTo: assignedToName || null,
-            priority,
-            slaHours,
-            labels: labels !== undefined ? labels : ticket.labels || [],
-          },
-        );
+            : null;
+          changes.slaHours = slaHours;
+        }
+        if (
+          labels !== undefined &&
+          JSON.stringify(ticket.labels || []) !== JSON.stringify(labels)
+        ) {
+          updatedMetadata.labels = labels;
+          changes.labels = labels;
+        }
+
+        if (Object.keys(updatedMetadata).length) {
+          updatedMetadata.metadataUpdatedAt = now;
+          updatedMetadata.metadataUpdatedById = String(actor);
+          await TicketModel.updateOne(
+            { _id: ticketId, guildId },
+            {
+              $set: updatedMetadata,
+              $push: {
+                activity: {
+                  $each: [
+                    createTicketActivityEvent(
+                      req,
+                      actor,
+                      "metadata_updated",
+                      changes,
+                    ),
+                  ],
+                  $slice: -100,
+                },
+              },
+            },
+          );
+        }
 
         const updatedTicket = await TicketModel.findById(ticketId).lean();
-        if (recordAudit) {
+        if (recordAudit && Object.keys(updatedMetadata).length) {
           await recordAudit({
             req,
             action: "ticket.metadata.update",
             guildId,
             targetUserId: ticket.userId,
             actor,
-            payload: { ticketId, priority, slaHours, labels },
+            payload: { ticketId, ...changes },
           });
         }
 
