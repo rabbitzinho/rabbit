@@ -104,10 +104,45 @@
     }
   }
 
+  function renderTicketSummary(items) {
+    const summaryEl = document.getElementById("ticketsListSummary");
+    if (!summaryEl) return;
+
+    const ticketItems = Array.isArray(items) ? items : [];
+    const open = ticketItems.filter(
+      (item) => item && item.status !== "closed",
+    ).length;
+    const atRisk = ticketItems.filter((item) => {
+      if (!item || item.status === "closed") return false;
+      const dueAt = item.slaDueAt ? new Date(item.slaDueAt) : null;
+      return (
+        !!dueAt &&
+        !Number.isNaN(dueAt.getTime()) &&
+        dueAt.getTime() <= Date.now() + 6 * 60 * 60 * 1000
+      );
+    }).length;
+    const overdue = ticketItems.filter((item) => {
+      if (!item || item.status === "closed") return false;
+      const dueAt = item.slaDueAt ? new Date(item.slaDueAt) : null;
+      return (
+        !!dueAt &&
+        !Number.isNaN(dueAt.getTime()) &&
+        dueAt.getTime() < Date.now()
+      );
+    }).length;
+
+    summaryEl.innerHTML = `
+      <span class="ticket-summary__pill"><span>${escapeHtml(t("tickets_status_open"))}</span><strong>${open}</strong></span>
+      <span class="ticket-summary__pill"><span>${escapeHtml(t("tickets_sla_status_at_risk"))}</span><strong>${atRisk}</strong></span>
+      <span class="ticket-summary__pill"><span>${escapeHtml(t("tickets_sla_status_overdue"))}</span><strong>${overdue}</strong></span>
+    `;
+  }
+
   function renderList(items) {
     const listEl = document.getElementById("ticketsList");
     if (!listEl) return;
 
+    renderTicketSummary(items);
     listEl.innerHTML = "";
 
     if (!Array.isArray(items) || !items.length) {
