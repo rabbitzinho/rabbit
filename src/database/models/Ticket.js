@@ -2,6 +2,17 @@
 
 const { Schema, model } = require("mongoose");
 
+const ticketActivitySchema = new Schema(
+  {
+    action: { type: String, required: true },
+    actorId: { type: String, default: null },
+    actorUsername: { type: String, default: null },
+    createdAt: { type: Date, default: Date.now },
+    details: { type: Schema.Types.Mixed, default: null },
+  },
+  { _id: false },
+);
+
 const ticketSchema = new Schema(
   {
     guildId: { type: String, required: true, index: true },
@@ -20,6 +31,8 @@ const ticketSchema = new Schema(
     },
 
     subject: { type: String, default: null },
+    labels: { type: [String], default: [] },
+    activity: { type: [ticketActivitySchema], default: [] },
     assignedToId: { type: String, default: null },
     assignedToName: { type: String, default: null },
     priority: {

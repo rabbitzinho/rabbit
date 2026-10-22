@@ -3186,6 +3186,35 @@ body {
   margin: 0;
 }
 
+#ticketsManagementPanel .ticket-labels-field {
+  grid-column: 1 / -1;
+}
+
+#ticketsManagementPanel .ticket-labels-field .hint {
+  margin: 0;
+}
+
+.ticket-label-list,
+.ticket-detail-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.ticket-label-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 2px 7px;
+  border: 1px solid var(--accent-35, var(--border-soft));
+  border-radius: 4px;
+  background: var(--accent-12);
+  color: var(--text);
+  font-size: var(--fs-2xs);
+  overflow-wrap: anywhere;
+}
+
 #ticketsManagementPanel .ticket-management-form__actions {
   display: flex;
   align-items: center;
@@ -3299,6 +3328,13 @@ details[open] > .details-summary:before {
 
 .ticket-audit .ticket-audit-row:last-child {
   border-bottom: 0;
+}
+
+.ticket-audit .ticket-audit-row small {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
 }
 
 .ticket-audit-what {

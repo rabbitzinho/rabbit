@@ -9,6 +9,9 @@ const {
   resolveMember,
 } = require("../../services/guildService");
 
+const TICKET_TRANSCRIPT_MAX_MESSAGES = 1000;
+const TICKET_TRANSCRIPT_PAGE_SIZE = 100;
+
 module.exports = {
   registerTicketsRoutes,
 };
@@ -63,6 +66,29 @@ function registerTicketsRoutes(opts) {
     } catch {
       return false;
     }
+  }
+
+  async function appendTicketActivity(
+    TicketModel,
+    ticketId,
+    guildId,
+    req,
+    actorId,
+    action,
+    details,
+  ) {
+    const event = {
+      action,
+      actorId: String(actorId || "dashboard").slice(0, 64),
+      actorUsername:
+        String(req?.dashboardUser?.username || "").slice(0, 64) || null,
+      createdAt: new Date(),
+      details: details || null,
+    };
+    await TicketModel.updateOne(
+      { _id: ticketId, guildId },
+      { $push: { activity: { $each: [event], $slice: -100 } } },
+    );
   }
 
   // -----------------------------
@@ -359,6 +385,36 @@ function registerTicketsRoutes(opts) {
         if (![0, 4, 8, 24, 48, 72].includes(slaHours))
           return res.status(400).json({ ok: false, error: "INVALID_SLA" });
 
+        let labels;
+        if (req.body?.labels !== undefined) {
+          const rawLabels = Array.isArray(req.body.labels)
+            ? req.body.labels
+            : typeof req.body.labels === "string"
+              ? req.body.labels.split(",")
+              : null;
+          if (!rawLabels || rawLabels.length > 8)
+            return res
+              .status(400)
+              .json({ ok: false, error: "INVALID_TICKET_LABELS" });
+          labels = [];
+          const seenLabels = new Set();
+          for (const rawLabel of rawLabels) {
+            const untrimmed = String(rawLabel || "").trim();
+            if (untrimmed.length > 24)
+              return res
+                .status(400)
+                .json({ ok: false, error: "INVALID_TICKET_LABELS" });
+            const label = sanitizeText
+              ? sanitizeText(untrimmed, { maxLen: 24, stripHtml: true }).trim()
+              : untrimmed;
+            if (!label) continue;
+            const key = label.toLowerCase();
+            if (seenLabels.has(key)) continue;
+            seenLabels.add(key);
+            labels.push(label);
+          }
+        }
+
         let assignedToName = null;
         if (rawAssigneeId) {
           const client = _getClient ? _getClient() : null;
@@ -377,20 +433,34 @@ function registerTicketsRoutes(opts) {
         const now = new Date();
         const actor =
           (getActorFromRequest && getActorFromRequest(req)) || "dashboard";
+        const updatedMetadata = {
+          assignedToId: rawAssigneeId || null,
+          assignedToName,
+          priority,
+          slaHours,
+          slaDueAt: slaHours
+            ? new Date(now.getTime() + slaHours * 60 * 60 * 1000)
+            : null,
+          metadataUpdatedAt: now,
+          metadataUpdatedById: String(actor),
+        };
+        if (labels !== undefined) updatedMetadata.labels = labels;
         await TicketModel.updateOne(
           { _id: ticketId, guildId },
+          { $set: updatedMetadata },
+        );
+        await appendTicketActivity(
+          TicketModel,
+          ticketId,
+          guildId,
+          req,
+          actor,
+          "metadata_updated",
           {
-            $set: {
-              assignedToId: rawAssigneeId || null,
-              assignedToName,
-              priority,
-              slaHours,
-              slaDueAt: slaHours
-                ? new Date(now.getTime() + slaHours * 60 * 60 * 1000)
-                : null,
-              metadataUpdatedAt: now,
-              metadataUpdatedById: String(actor),
-            },
+            assignedTo: assignedToName || null,
+            priority,
+            slaHours,
+            labels: labels !== undefined ? labels : ticket.labels || [],
           },
         );
 
@@ -402,7 +472,7 @@ function registerTicketsRoutes(opts) {
             guildId,
             targetUserId: ticket.userId,
             actor,
-            payload: { ticketId, priority, slaHours },
+            payload: { ticketId, priority, slaHours, labels },
           });
         }
 
@@ -455,6 +525,20 @@ function registerTicketsRoutes(opts) {
         }
 
         const items = [];
+        const activity = Array.isArray(ticket.activity) ? ticket.activity : [];
+        activity.forEach((event) => {
+          if (!event || !event.action) return;
+          items.push({
+            action: event.action,
+            createdAt: event.createdAt
+              ? new Date(event.createdAt).toISOString()
+              : null,
+            actorId: event.actorId || null,
+            actorUsername: event.actorUsername || null,
+            details: event.details || null,
+          });
+        });
+
         // Open event
         if (ticket.createdAt) {
           items.push({
@@ -465,7 +549,7 @@ function registerTicketsRoutes(opts) {
           });
         }
 
-        // Closed event (from Ticket or TicketLog)
+        // Legacy close event (before activity history was added).
         let closedAt = ticket.closedAt || null;
         let closedByUsername = ticket.closedByUsername || null;
         let closedById = ticket.closedById || null;
@@ -484,7 +568,10 @@ function registerTicketsRoutes(opts) {
           } catch {}
         }
 
-        if (closedAt) {
+        const hasRecordedClose = activity.some(
+          (event) => event && event.action === "closed",
+        );
+        if (closedAt && !hasRecordedClose) {
           items.push({
             action: "closed",
             createdAt: new Date(closedAt).toISOString(),
@@ -635,6 +722,155 @@ function registerTicketsRoutes(opts) {
     },
   );
 
+  app.get(
+    "/api/tickets/:ticketId/transcript",
+    requireDashboardAuth,
+    canManageTickets,
+    guardGuildQueryOptional,
+    rateLimit({
+      windowMs: 60_000,
+      max: 5,
+      keyPrefix: "rl:tickets:transcript:",
+    }),
+    async (req, res) => {
+      try {
+        const { TicketModel } = _getModels ? _getModels() : {};
+        if (!TicketModel)
+          return res
+            .status(503)
+            .json({ ok: false, error: "Ticket model not available" });
+
+        const ticketId = String(req.params.ticketId || "").trim();
+        const ticket = ticketId
+          ? await TicketModel.findById(ticketId).lean()
+          : null;
+        if (!ticket)
+          return res.status(404).json({ ok: false, error: "Ticket not found" });
+
+        const guildId = String(
+          req.query.guildId || ticket.guildId || "",
+        ).trim();
+        if (!guildId || String(ticket.guildId) !== guildId)
+          return res.status(400).json({ ok: false, error: "INVALID_GUILD_ID" });
+        if (!hasGuildAccess(req, guildId))
+          return res.status(403).json({ ok: false, error: "NO_GUILD_ACCESS" });
+
+        const client = _getClient ? _getClient() : null;
+        const guild = getGuild(client, guildId);
+        if (!guild)
+          return res.status(404).json({ ok: false, error: "Guild not found" });
+        const channel = ticket.channelId
+          ? await resolveChannel(client, guildId, ticket.channelId)
+          : null;
+        if (!channel || !channel.messages?.fetch)
+          return res
+            .status(404)
+            .json({ ok: false, error: "Ticket thread not accessible" });
+
+        const messages = [];
+        const seenIds = new Set();
+        let before;
+        while (messages.length < TICKET_TRANSCRIPT_MAX_MESSAGES) {
+          const limit = Math.min(
+            TICKET_TRANSCRIPT_PAGE_SIZE,
+            TICKET_TRANSCRIPT_MAX_MESSAGES - messages.length,
+          );
+          const options = before ? { limit, before } : { limit };
+          const batch = await channel.messages.fetch(options);
+          const page = Array.from(batch.values());
+          if (!page.length) break;
+
+          for (const message of page) {
+            if (!message || seenIds.has(String(message.id))) continue;
+            seenIds.add(String(message.id));
+            messages.push(message);
+          }
+
+          const oldest = page.reduce(
+            (current, message) =>
+              !current ||
+              Number(message.createdTimestamp) <
+                Number(current.createdTimestamp)
+                ? message
+                : current,
+            null,
+          );
+          if (
+            !oldest ||
+            !oldest.id ||
+            String(oldest.id) === String(before || "")
+          )
+            break;
+          before = String(oldest.id);
+          if (page.length < limit) break;
+        }
+
+        messages.sort(
+          (a, b) => Number(a.createdTimestamp) - Number(b.createdTimestamp),
+        );
+        const cleanName = (value) =>
+          String(value || "Unknown")
+            .replace(/[\r\n\t]+/g, " ")
+            .replace(/[\u0000-\u001f\u007f]/g, "")
+            .slice(0, 80);
+        const cleanContent = (value) =>
+          String(value || "").replace(
+            /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g,
+            "",
+          );
+        const lines = [
+          `Ticket #${ticket.ticketNumber || String(ticket._id).slice(-6)}`,
+          `Server: ${cleanName(guild.name)}`,
+          `Member: ${cleanName(ticket.username || ticket.userId)}`,
+          `Created: ${ticket.createdAt ? new Date(ticket.createdAt).toISOString() : "Unknown"}`,
+          `Messages exported: ${messages.length}`,
+          `Export cap: ${TICKET_TRANSCRIPT_MAX_MESSAGES}; older messages may be omitted`,
+          "",
+        ];
+
+        for (const message of messages) {
+          const author = cleanName(
+            message.member?.displayName ||
+              message.author?.globalName ||
+              message.author?.username,
+          );
+          const timestamp = message.createdAt
+            ? new Date(message.createdAt).toISOString()
+            : "Unknown time";
+          const content = cleanContent(message.cleanContent || message.content);
+          lines.push(
+            `[${timestamp}] ${author}: ${content || "[no text content]"}`,
+          );
+          for (const attachment of Array.from(
+            message.attachments?.values?.() || [],
+          ).slice(0, 10)) {
+            if (attachment.url)
+              lines.push(
+                `  Attachment: ${String(attachment.url).slice(0, 512)}`,
+              );
+          }
+        }
+
+        const ticketNumber = String(ticket.ticketNumber || "ticket").replace(
+          /[^a-z0-9_-]/gi,
+          "",
+        );
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="ticket-${ticketNumber}.txt"`,
+        );
+        return res.send(lines.join("\n"));
+      } catch (err) {
+        return sendServerError(
+          res,
+          "GET /api/tickets/:ticketId/transcript",
+          err,
+        );
+      }
+    },
+  );
+
   // -----------------------------
   // Close/reopen ticket
   // -----------------------------
@@ -692,6 +928,14 @@ function registerTicketsRoutes(opts) {
               closedByUsername: actor,
             },
           },
+        );
+        await appendTicketActivity(
+          TicketModel,
+          ticketId,
+          guildId,
+          req,
+          actor,
+          "closed",
         );
 
         // Keep legacy analytics consistent: TicketLog is used by /api/mod/overview.
@@ -790,6 +1034,14 @@ function registerTicketsRoutes(opts) {
               closedByUsername: null,
             },
           },
+        );
+        await appendTicketActivity(
+          TicketModel,
+          ticketId,
+          guildId,
+          req,
+          actor,
+          "reopened",
         );
 
         if (TicketLogModel) {
@@ -941,6 +1193,14 @@ function registerTicketsRoutes(opts) {
                 lastResponderAt: new Date(),
               },
             },
+          );
+          await appendTicketActivity(
+            TicketModel,
+            ticketId,
+            guildId,
+            req,
+            actor,
+            "staff_reply",
           );
         } catch (e) {
           console.warn(

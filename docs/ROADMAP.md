@@ -24,7 +24,7 @@ Não é um compromisso rígido, mas um guia de prioridades.
 - Inventário de servidores e gestão global: ✅ – estados de presença do bot e acesso de gestão explícitos; resumo operacional com ligação Discord/BD, servidores e ações recentes; checklist e diagnóstico das features ativas por servidor; alertas de licenças Premium perto da expiração; controlos globais de manutenção exclusivos do dono do bot.
 - Menu da conta: ✅ – o perfil abre um menu unificado com Painel, Tema, Densidade, Conta e Sair.
 - Navegação orientada por tarefas e checklist de onboarding por servidor: ✅ – Visão geral mostra estado do bot, canal de logs, cargos de staff, canal de Tickets e configuração de features; apresenta diagnósticos das features ativas.
-- Gestão avançada de tickets: 🟡 – atribuição a membro, prioridade e SLA configuráveis na dashboard; etiquetas, transcrições e histórico completo continuam pendentes. A dashboard permite listar, responder, fechar e reabrir.
+- Gestão avançada de tickets: 🟡 – atribuição a membro, prioridade, SLA e etiquetas configuráveis na dashboard; transcrição `.txt` exportável (até 1.000 mensagens) e timeline com até 100 eventos de gestão. Eventos anteriores à implementação não são reconstruídos. A dashboard permite listar, responder, fechar e reabrir.
 
 ## 2. Arquitetura da Dashboard
 

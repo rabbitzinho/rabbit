@@ -37,6 +37,7 @@ test("ticket management routes do not require a Premium license", () => {
     "POST /api/tickets/:ticketId/manage",
     "GET /api/tickets/:ticketId/audit",
     "GET /api/tickets/:ticketId/messages",
+    "GET /api/tickets/:ticketId/transcript",
     "POST /api/tickets/:ticketId/close",
     "POST /api/tickets/:ticketId/reopen",
     "POST /api/tickets/:ticketId/reply",
@@ -376,7 +377,9 @@ test("ticket management updates assignment, priority, and SLA in its guild scope
         findById: () => ({ lean: async () => ticket }),
         updateOne: async (filter, update) => {
           assert.equal(filter.guildId, ticket.guildId);
-          Object.assign(ticket, update.$set);
+          if (update.$set) Object.assign(ticket, update.$set);
+          const activityEvents = update.$push?.activity?.$each || [];
+          ticket.activity = [...(ticket.activity || []), ...activityEvents];
         },
       },
     }),
@@ -402,6 +405,7 @@ test("ticket management updates assignment, priority, and SLA in its guild scope
         assignedToId: assigneeId,
         priority: "high",
         slaHours: 4,
+        labels: [" Bug ", "Support", "bug"],
       },
       dashboardUser: {
         allowedGuildIds: [ticket.guildId],
@@ -417,8 +421,251 @@ test("ticket management updates assignment, priority, and SLA in its guild scope
   assert.equal(ticket.assignedToName, "Support Staff");
   assert.equal(ticket.priority, "high");
   assert.equal(ticket.slaHours, 4);
+  assert.deepEqual(ticket.labels, ["Bug", "Support"]);
+  assert.equal(ticket.activity[0].action, "metadata_updated");
+  assert.deepEqual(ticket.activity[0].details.labels, ["Bug", "Support"]);
   assert.ok(ticket.slaDueAt instanceof Date);
   assert.equal(ticket.metadataUpdatedById, "staff-1");
+});
+
+test("ticket audit returns management and reply events without message content", async () => {
+  const routes = new Map();
+  const passThrough = (req, res, next) => next();
+  const ticket = {
+    _id: "ticket-activity",
+    guildId: "12345678901",
+    userId: "22222222222",
+    activity: [
+      {
+        action: "metadata_updated",
+        actorId: "staff-1",
+        actorUsername: "Staff",
+        createdAt: new Date("2026-10-22T11:00:00.000Z"),
+        details: { priority: "urgent", labels: ["billing"] },
+      },
+      {
+        action: "staff_reply",
+        actorId: "staff-1",
+        actorUsername: "Staff",
+        createdAt: new Date("2026-10-22T11:01:00.000Z"),
+      },
+    ],
+  };
+  const app = {
+    get(path, ...handlers) {
+      routes.set("GET " + path, handlers);
+    },
+    post(path, ...handlers) {
+      routes.set("POST " + path, handlers);
+    },
+  };
+  registerTicketsRoutes({
+    app,
+    requireDashboardAuth: passThrough,
+    requirePerm: () => passThrough,
+    requireGuildAccess: () => passThrough,
+    rateLimit: () => passThrough,
+    _getModels: () => ({
+      TicketModel: { findById: () => ({ lean: async () => ticket }) },
+    }),
+  });
+  const response = {
+    statusCode: 200,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    },
+  };
+  await routes.get("GET /api/tickets/:ticketId/audit").at(-1)(
+    {
+      params: { ticketId: ticket._id },
+      query: { guildId: ticket.guildId },
+      dashboardUser: {
+        allowedGuildIds: [ticket.guildId],
+        selectedGuildId: ticket.guildId,
+      },
+    },
+    response,
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(
+    response.body.items.map((event) => event.action),
+    ["metadata_updated", "staff_reply"],
+  );
+  assert.deepEqual(response.body.items[0].details.labels, ["billing"]);
+  assert.equal(JSON.stringify(response.body).includes("reply body"), false);
+});
+
+test("ticket management rejects more than eight labels", async () => {
+  const routes = new Map();
+  const passThrough = (req, res, next) => next();
+  const ticket = { _id: "ticket-1", guildId: "12345678901" };
+  let updateCalled = false;
+  const app = {
+    get(path, ...handlers) {
+      routes.set("GET " + path, handlers);
+    },
+    post(path, ...handlers) {
+      routes.set("POST " + path, handlers);
+    },
+  };
+  registerTicketsRoutes({
+    app,
+    requireDashboardAuth: passThrough,
+    requirePerm: () => passThrough,
+    requireGuildAccess: () => passThrough,
+    rateLimit: () => passThrough,
+    _getModels: () => ({
+      TicketModel: {
+        findById: () => ({ lean: async () => ticket }),
+        updateOne: async () => {
+          updateCalled = true;
+        },
+      },
+    }),
+  });
+  const response = {
+    statusCode: 200,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    },
+  };
+  await routes.get("POST /api/tickets/:ticketId/manage").at(-1)(
+    {
+      params: { ticketId: ticket._id },
+      body: {
+        guildId: ticket.guildId,
+        priority: "normal",
+        slaHours: 0,
+        labels: Array.from({ length: 9 }, (_, index) => `label-${index}`),
+      },
+      dashboardUser: {
+        allowedGuildIds: [ticket.guildId],
+        selectedGuildId: ticket.guildId,
+      },
+    },
+    response,
+  );
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.body.error, "INVALID_TICKET_LABELS");
+  assert.equal(updateCalled, false);
+});
+
+test("ticket transcript export is guild-scoped and includes chronological messages", async () => {
+  const routes = new Map();
+  const passThrough = (req, res, next) => next();
+  const guildId = "12345678901";
+  const channelId = "23456789012";
+  const ticket = {
+    _id: "ticket-1",
+    guildId,
+    channelId,
+    ticketNumber: 42,
+    userId: "34567890123",
+    username: "Member",
+    createdAt: new Date("2026-10-22T10:00:00.000Z"),
+  };
+  const channel = {
+    messages: {
+      fetch: async ({ limit }) => {
+        assert.equal(limit, 100);
+        return new Map([
+          [
+            "message-2",
+            {
+              id: "message-2",
+              createdTimestamp: 2,
+              createdAt: new Date("2026-10-22T10:02:00.000Z"),
+              content: "second reply",
+              author: { username: "Staff" },
+              attachments: new Map(),
+            },
+          ],
+          [
+            "message-1",
+            {
+              id: "message-1",
+              createdTimestamp: 1,
+              createdAt: new Date("2026-10-22T10:01:00.000Z"),
+              content: "first message",
+              author: { username: "Member" },
+              attachments: new Map(),
+            },
+          ],
+        ]);
+      },
+    },
+  };
+  const guild = {
+    id: guildId,
+    channels: { cache: new Map([[channelId, channel]]) },
+  };
+  const app = {
+    get(path, ...handlers) {
+      routes.set("GET " + path, handlers);
+    },
+    post(path, ...handlers) {
+      routes.set("POST " + path, handlers);
+    },
+  };
+  registerTicketsRoutes({
+    app,
+    requireDashboardAuth: passThrough,
+    requirePerm: () => passThrough,
+    requireGuildAccess: () => passThrough,
+    rateLimit: () => passThrough,
+    _getClient: () => ({ guilds: { cache: new Map([[guildId, guild]]) } }),
+    _getModels: () => ({
+      TicketModel: { findById: () => ({ lean: async () => ticket }) },
+    }),
+  });
+  const response = {
+    statusCode: 200,
+    headers: {},
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    },
+    setHeader(key, value) {
+      this.headers[key] = value;
+    },
+    send(body) {
+      this.body = body;
+      return this;
+    },
+  };
+  await routes.get("GET /api/tickets/:ticketId/transcript").at(-1)(
+    {
+      params: { ticketId: ticket._id },
+      query: { guildId },
+      dashboardUser: { allowedGuildIds: [guildId], selectedGuildId: guildId },
+    },
+    response,
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.match(response.headers["Content-Disposition"], /ticket-42\.txt/);
+  assert.ok(
+    response.body.indexOf("first message") <
+      response.body.indexOf("second reply"),
+  );
+  assert.match(response.body, /Messages exported: 2/);
+  assert.match(response.body, /Export cap: 1000/);
 });
 
 test("ticket management rejects invalid priority values", async () => {

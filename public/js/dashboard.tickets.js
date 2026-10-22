@@ -104,6 +104,13 @@
         urgent: t("tickets_priority_urgent"),
       };
       const priority = priorityLabels[it.priority] || priorityLabels.normal;
+      const labels = (Array.isArray(it.labels) ? it.labels : [])
+        .slice(0, 8)
+        .map(
+          (label) =>
+            `<span class="ticket-label-chip">${escapeHtml(label)}</span>`,
+        )
+        .join("");
 
       row.innerHTML = `
         <div class="user-row-header">
@@ -111,6 +118,7 @@
           <div class="user-type-badge ${it.status === "closed" ? "bot" : "human"}">${escapeHtml(status)}</div>
         </div>
         <div class="subtitle">${escapeHtml(username)}${created ? " • " + escapeHtml(created) : ""} • ${escapeHtml(priority)}</div>
+        ${labels ? `<div class="ticket-label-list">${labels}</div>` : ""}
       `;
 
       row.addEventListener("click", () => {
@@ -231,6 +239,13 @@
 
     const canClose = ticket.status !== "closed";
     const canReopen = ticket.status === "closed";
+    const ticketLabels = (Array.isArray(ticket.labels) ? ticket.labels : [])
+      .slice(0, 8)
+      .map(
+        (label) =>
+          `<span class="ticket-label-chip">${escapeHtml(label)}</span>`,
+      )
+      .join("");
 
     // Detail header should be readable and not repeat what the list already shows.
     // We show the generic title + status and compact meta badges.
@@ -247,6 +262,7 @@
           <div class="badge ${overdue ? "ticket-sla-overdue" : ""}">${escapeHtml(slaLabel)}</div>
           ${closedAt ? `<div class="badge">${escapeHtml(t("tickets_detail_closed"))}: ${escapeHtml(closedAt)}</div>` : ""}
         </div>
+        ${ticketLabels ? `<div class="ticket-detail-labels">${ticketLabels}</div>` : ""}
       </div>
 
       <form class="ticket-management-form" id="ticketManagementForm">
@@ -268,6 +284,11 @@
             ${[0, 4, 8, 24, 48, 72].map((hours) => `<option value="${hours}"${hours === slaHours ? " selected" : ""}>${escapeHtml(hours ? t("tickets_sla_hours", { hours }) : t("tickets_sla_none"))}</option>`).join("")}
           </select>
         </label>
+        <label class="field ticket-labels-field">
+          <span>${escapeHtml(t("tickets_labels"))}</span>
+          <input class="input" id="ticketLabels" type="text" maxlength="200" value="${escapeHtml((Array.isArray(ticket.labels) ? ticket.labels : []).join(", "))}" placeholder="${escapeHtml(t("tickets_labels_placeholder"))}" />
+          <small class="hint">${escapeHtml(t("tickets_labels_hint"))}</small>
+        </label>
         <div class="ticket-management-form__actions">
           <button class="btn xs" type="submit">${escapeHtml(t("tickets_save_management"))}</button>
           <span class="hint" id="ticketManagementStatus" role="status" aria-live="polite"></span>
@@ -282,6 +303,7 @@
             <button type="button" class="btn xs" id="btnTicketSendReply">${escapeHtml(t("tickets_action_reply"))}</button>
             ${canClose ? `<button type="button" class="btn xs" id="btnTicketClose">${escapeHtml(t("tickets_action_close"))}</button>` : ""}
             ${canReopen ? `<button type="button" class="btn xs" id="btnTicketReopen">${escapeHtml(t("tickets_action_reopen"))}</button>` : ""}
+            <button type="button" class="btn xs btn-ghost" id="btnTicketTranscript">${escapeHtml(t("tickets_transcript_download"))}</button>
             <button type="button" class="btn xs" id="btnTicketRefresh">${escapeHtml(t("reload"))}</button>
           </div>
         </div>
@@ -410,6 +432,11 @@
               assignedToId: selectedAssigneeId,
               priority: panel.querySelector("#ticketPriority").value,
               slaHours: Number(panel.querySelector("#ticketSlaHours").value),
+              labels: panel
+                .querySelector("#ticketLabels")
+                .value.split(",")
+                .map((label) => label.trim())
+                .filter(Boolean),
             },
           );
           if (!result || result.ok === false || !result.ticket)
@@ -436,6 +463,39 @@
               error?.apiMessage || t("tickets_management_error");
         } finally {
           if (submit && submit.isConnected) submit.disabled = false;
+        }
+      });
+    }
+
+    const transcriptBtn = panel.querySelector("#btnTicketTranscript");
+    if (transcriptBtn) {
+      transcriptBtn.addEventListener("click", async () => {
+        transcriptBtn.disabled = true;
+        try {
+          const response = await fetch(
+            `/api/tickets/${encodeURIComponent(ticketId)}/transcript?guildId=${encodeURIComponent(guildId)}`,
+            { credentials: "same-origin" },
+          );
+          if (!response.ok) {
+            const result = await response.json().catch(() => null);
+            throw new Error(result?.error || "TRANSCRIPT_EXPORT_FAILED");
+          }
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          const number = ticket.ticketNumber || String(ticketId).slice(-6);
+          link.href = objectUrl;
+          link.download = `ticket-${String(number).replace(/[^a-z0-9_-]/gi, "")}.txt`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(objectUrl);
+          toast(t("tickets_transcript_downloaded"), { type: "success" });
+        } catch (error) {
+          console.error("Ticket transcript export error", error);
+          toast(t("tickets_transcript_error"), { type: "error" });
+        } finally {
+          transcriptBtn.disabled = false;
         }
       });
     }
@@ -503,13 +563,33 @@
             const when = ev.createdAt ? fmtDate(ev.createdAt) : "";
             const who = ev.actorUsername || ev.actorId || "";
             const raw = ev.action || "";
-            const what =
-              raw === "opened"
-                ? t("tickets_audit_opened") || "Aberto"
-                : raw === "closed"
-                  ? t("tickets_audit_closed") || "Fechado"
-                  : raw;
-            return `<div class="ticket-audit-row"><span class="ticket-audit-what">${escapeHtml(what)}</span>${who ? " • " + escapeHtml(who) : ""}${when ? " • " + escapeHtml(when) : ""}</div>`;
+            const actionKeys = {
+              opened: "tickets_audit_opened",
+              closed: "tickets_audit_closed",
+              reopened: "tickets_audit_reopened",
+              metadata_updated: "tickets_audit_metadata_updated",
+              staff_reply: "tickets_audit_staff_reply",
+            };
+            const what = actionKeys[raw] ? t(actionKeys[raw]) : raw;
+            const details = ev.details || {};
+            const changes = [];
+            if (details.priority)
+              changes.push(
+                `${t("tickets_priority")}: ${t(`tickets_priority_${details.priority}`)}`,
+              );
+            if (Object.prototype.hasOwnProperty.call(details, "assignedTo"))
+              changes.push(
+                `${t("tickets_assignment")}: ${details.assignedTo || t("tickets_unassigned")}`,
+              );
+            if (details.slaHours != null)
+              changes.push(
+                `${t("tickets_sla")}: ${details.slaHours ? t("tickets_sla_hours", { hours: details.slaHours }) : t("tickets_sla_none")}`,
+              );
+            if (Array.isArray(details.labels))
+              changes.push(
+                `${t("tickets_labels")}: ${details.labels.length ? details.labels.join(", ") : t("tickets_labels_none")}`,
+              );
+            return `<div class="ticket-audit-row"><div><span class="ticket-audit-what">${escapeHtml(what)}</span>${who ? " • " + escapeHtml(who) : ""}${when ? " • " + escapeHtml(when) : ""}</div>${changes.length ? `<small>${escapeHtml(changes.join(" · "))}</small>` : ""}</div>`;
           })
           .join("");
       } catch {
