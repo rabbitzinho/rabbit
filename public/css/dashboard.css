@@ -3269,6 +3269,28 @@ body {
   color: var(--danger);
 }
 
+.ticket-sla-alert {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  margin: 8px 0 0;
+}
+
+.ticket-sla-alert--at-risk {
+  background: rgba(255, 179, 0, 0.12);
+  border: 1px solid rgba(255, 179, 0, 0.45);
+  color: var(--warning);
+}
+
+.ticket-sla-alert--overdue {
+  background: rgba(255, 94, 94, 0.12);
+  border: 1px solid rgba(255, 94, 94, 0.45);
+  color: var(--danger);
+}
+
 #ticketsManagementPanel details.ticket-section {
   margin-top: 10px;
 }

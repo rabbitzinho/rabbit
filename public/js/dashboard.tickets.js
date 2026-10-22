@@ -15,6 +15,7 @@
   let _loading = false;
   let _ticketsRequestSequence = 0;
   let _detailTimeout = null;
+  let _ticketsAutoRefreshTimer = null;
   const MAX_REPLY_LEN = 1800;
   const TICKET_FILTER_STORAGE_KEY = "ozark_dashboard_ticket_filters";
 
@@ -259,6 +260,19 @@
       dueAt &&
       !Number.isNaN(dueAt.getTime()) &&
       dueAt.getTime() < Date.now();
+    const atRisk =
+      ticket.status !== "closed" &&
+      dueAt &&
+      !Number.isNaN(dueAt.getTime()) &&
+      dueAt.getTime() <= Date.now() + 6 * 60 * 60 * 1000;
+    const slaAlert =
+      ticket.status !== "closed" && dueAt && !Number.isNaN(dueAt.getTime())
+        ? overdue
+          ? `<div class="ticket-sla-alert ticket-sla-alert--overdue">${escapeHtml(t("tickets_sla_overdue"))}</div>`
+          : atRisk
+            ? `<div class="ticket-sla-alert ticket-sla-alert--at-risk">${escapeHtml(t("tickets_sla_status_at_risk"))}</div>`
+            : ""
+        : "";
     const slaLabel =
       dueAt && !Number.isNaN(dueAt.getTime())
         ? overdue
@@ -305,6 +319,7 @@
           <div class="badge ${overdue ? "ticket-sla-overdue" : ""}">${escapeHtml(slaLabel)}</div>
           ${closedAt ? `<div class="badge">${escapeHtml(t("tickets_detail_closed"))}: ${escapeHtml(closedAt)}</div>` : ""}
         </div>
+        ${slaAlert}
         ${ticketLabels ? `<div class="ticket-detail-labels">${ticketLabels}</div>` : ""}
       </div>
 
@@ -873,7 +888,17 @@
     }
   }
 
+  function scheduleTicketsAutoRefresh() {
+    if (_ticketsAutoRefreshTimer) clearInterval(_ticketsAutoRefreshTimer);
+    _ticketsAutoRefreshTimer = setInterval(() => {
+      const active = document.getElementById("ticketsManagementPanel");
+      if (!active || active.classList.contains("hidden")) return;
+      loadTickets(true);
+    }, 60_000);
+  }
+
   function initTicketsUI() {
+    scheduleTicketsAutoRefresh();
     const saved = getTicketFilterState();
     const applySavedState = () => {
       const ids = {
