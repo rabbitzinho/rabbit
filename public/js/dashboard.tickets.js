@@ -16,6 +16,45 @@
   let _ticketsRequestSequence = 0;
   let _detailTimeout = null;
   const MAX_REPLY_LEN = 1800;
+  const TICKET_FILTER_STORAGE_KEY = "ozark_dashboard_ticket_filters";
+
+  function getTicketFilterState() {
+    try {
+      const raw = sessionStorage.getItem(TICKET_FILTER_STORAGE_KEY);
+      if (!raw) return {};
+      return JSON.parse(raw) || {};
+    } catch {
+      return {};
+    }
+  }
+
+  function persistTicketFilterState(statePatch) {
+    try {
+      const previous = getTicketFilterState();
+      const next = { ...previous, ...statePatch };
+      sessionStorage.setItem(TICKET_FILTER_STORAGE_KEY, JSON.stringify(next));
+    } catch {}
+  }
+
+  function getTicketSlaStatus(ticket) {
+    const dueAt = ticket && ticket.slaDueAt ? new Date(ticket.slaDueAt) : null;
+    if (ticket && ticket.status === "closed") {
+      return { key: "normal", label: t("tickets_sla_status_closed") };
+    }
+    if (!dueAt || Number.isNaN(dueAt.getTime())) {
+      return { key: "normal", label: t("tickets_sla_status_normal") };
+    }
+    const now = Date.now();
+    const isOverdue = dueAt.getTime() < now;
+    const isAtRisk = dueAt.getTime() <= now + 6 * 60 * 60 * 1000;
+    if (isOverdue) {
+      return { key: "overdue", label: t("tickets_sla_status_overdue") };
+    }
+    if (isAtRisk) {
+      return { key: "at-risk", label: t("tickets_sla_status_at_risk") };
+    }
+    return { key: "normal", label: t("tickets_sla_status_normal") };
+  }
 
   function waitForI18nReady(maxMs) {
     const deadline = Date.now() + (typeof maxMs === "number" ? maxMs : 4000);
@@ -111,6 +150,7 @@
             `<span class="ticket-label-chip">${escapeHtml(label)}</span>`,
         )
         .join("");
+      const slaStatus = getTicketSlaStatus(it);
 
       row.innerHTML = `
         <div class="user-row-header">
@@ -118,7 +158,10 @@
           <div class="user-type-badge ${it.status === "closed" ? "bot" : "human"}">${escapeHtml(status)}</div>
         </div>
         <div class="subtitle">${escapeHtml(username)}${created ? " • " + escapeHtml(created) : ""} • ${escapeHtml(priority)}</div>
-        ${labels ? `<div class="ticket-label-list">${labels}</div>` : ""}
+        <div class="ticket-row-meta">
+          <span class="ticket-sla-pill ticket-sla-pill--${escapeHtml(slaStatus.key)}">${escapeHtml(slaStatus.label)}</span>
+          ${labels ? `<div class="ticket-label-list">${labels}</div>` : ""}
+        </div>
       `;
 
       row.addEventListener("click", () => {
@@ -239,6 +282,7 @@
 
     const canClose = ticket.status !== "closed";
     const canReopen = ticket.status === "closed";
+    const ticketSlaStatus = getTicketSlaStatus(ticket);
     const ticketLabels = (Array.isArray(ticket.labels) ? ticket.labels : [])
       .slice(0, 8)
       .map(
@@ -738,7 +782,19 @@
       const sort = sortEl ? sortEl.value || "recent" : "recent";
       const assigneeEl = document.getElementById("ticketsAssigneeFilter");
       const assignee = assigneeEl ? assigneeEl.value.trim() : "";
+      const slaStateEl = document.getElementById("ticketsSlaFilter");
+      const slaState = slaStateEl ? slaStateEl.value || "all" : "all";
+      const labelEl = document.getElementById("ticketsLabelFilter");
+      const label = labelEl ? labelEl.value.trim() : "";
       const q = getSearchQuery();
+      persistTicketFilterState({
+        status,
+        priority,
+        sort,
+        assignee,
+        slaState,
+        label,
+      });
 
       if (reset) {
         listEl.innerHTML = `<div class="empty">${escapeHtml(t("tickets_loading"))}</div>`;
@@ -758,8 +814,11 @@
       const assigneeParam = assignee
         ? `&assignee=${encodeURIComponent(assignee)}`
         : "";
+      const labelParam = label ? `&label=${encodeURIComponent(label)}` : "";
+      const slaParam =
+        slaState !== "all" ? `&slaState=${encodeURIComponent(slaState)}` : "";
       const res = await apiGet(
-        `/tickets?guildId=${encodeURIComponent(guildId)}&status=${encodeURIComponent(status)}&limit=30${cursor}${qParam}${priorityParam}${assigneeParam}${sortParam}`,
+        `/tickets?guildId=${encodeURIComponent(guildId)}&status=${encodeURIComponent(status)}&limit=30${cursor}${qParam}${priorityParam}${assigneeParam}${labelParam}${slaParam}${sortParam}`,
       );
       if (
         requestSequence !== _ticketsRequestSequence ||
@@ -795,6 +854,32 @@
   }
 
   function initTicketsUI() {
+    const saved = getTicketFilterState();
+    const applySavedState = () => {
+      const ids = {
+        ticketsStatusFilter: saved.status || "open",
+        ticketsPriorityFilter: saved.priority || "all",
+        ticketsSortFilter: saved.sort || "recent",
+        ticketsSlaFilter: saved.slaState || "all",
+        ticketsLabelFilter: saved.label || "",
+        ticketsAssigneeFilter: saved.assignee || "",
+      };
+      Object.entries(ids).forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.tagName === "SELECT") {
+          const option = Array.from(el.options).find((opt) => opt.value === value);
+          if (option) {
+            el.value = value;
+          }
+        } else if (typeof value === "string") {
+          el.value = value;
+        }
+      });
+    };
+
+    applySavedState();
+
     const reloadBtn = document.getElementById("btnReloadTickets");
     if (reloadBtn) reloadBtn.addEventListener("click", () => loadTickets(true));
 
@@ -812,6 +897,19 @@
       assigneeFilter.addEventListener("input", () => {
         clearTimeout(assigneeFilterTimer);
         assigneeFilterTimer = setTimeout(() => loadTickets(true), 250);
+      });
+    }
+
+    const slaFilter = document.getElementById("ticketsSlaFilter");
+    if (slaFilter)
+      slaFilter.addEventListener("change", () => loadTickets(true));
+
+    const labelFilter = document.getElementById("ticketsLabelFilter");
+    if (labelFilter) {
+      let labelFilterTimer = null;
+      labelFilter.addEventListener("input", () => {
+        clearTimeout(labelFilterTimer);
+        labelFilterTimer = setTimeout(() => loadTickets(true), 250);
       });
     }
 

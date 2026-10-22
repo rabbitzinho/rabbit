@@ -754,3 +754,74 @@ test("ticket management rejects invalid priority values", async () => {
   assert.equal(response.body.error, "INVALID_PRIORITY");
   assert.equal(updateCalled, false);
 });
+
+test("ticket list applies label and SLA-state filters before pagination", async () => {
+  const routes = new Map();
+  const passThrough = (req, res, next) => next();
+  let capturedQuery;
+  const app = {
+    get(path, ...handlers) {
+      routes.set("GET " + path, handlers);
+    },
+    post(path, ...handlers) {
+      routes.set("POST " + path, handlers);
+    },
+  };
+  registerTicketsRoutes({
+    app,
+    requireDashboardAuth: passThrough,
+    requirePerm: () => passThrough,
+    requireGuildAccess: () => passThrough,
+    rateLimit: () => passThrough,
+    _getModels: () => ({
+      TicketModel: {
+        find(query) {
+          capturedQuery = query;
+          return {
+            sort() {
+              return this;
+            },
+            limit() {
+              return this;
+            },
+            lean: async () => [],
+          };
+        },
+      },
+    }),
+  });
+  const response = {
+    statusCode: 200,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    },
+  };
+  await routes.get("GET /api/tickets").at(-1)(
+    {
+      query: {
+        guildId: "12345678901",
+        status: "all",
+        label: "billing",
+        slaState: "overdue",
+        limit: "10",
+      },
+    },
+    response,
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.ok(capturedQuery.$and.some((part) => part.labels instanceof RegExp));
+  assert.ok(
+    capturedQuery.$and.some(
+      (part) =>
+        part.slaDueAt &&
+        part.slaDueAt.$lt instanceof Date &&
+        part.status === "open",
+    ),
+  );
+});

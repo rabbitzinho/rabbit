@@ -216,6 +216,11 @@ function registerTicketsRoutes(opts) {
           .trim()
           .toLowerCase();
         const assignee = (req.query.assignee || "").toString().trim();
+        const label = (req.query.label || "").toString().trim();
+        const slaState = (req.query.slaState || "all")
+          .toString()
+          .trim()
+          .toLowerCase();
         const sortBySla = String(req.query.sort || "") === "sla";
         const cursor = (req.query.cursor || "").toString().trim();
 
@@ -252,6 +257,24 @@ function registerTicketsRoutes(opts) {
               ? { assignedToId: assignee }
               : { assignedToName: re },
           );
+        }
+
+        if (label) {
+          const normalized = escapeRegExp(label.trim().slice(0, 24));
+          and.push({ labels: new RegExp(`^${normalized}$`, "i") });
+        }
+
+        if (slaState !== "all") {
+          const now = new Date();
+          const warningWindow = new Date(now.getTime() + 6 * 60 * 60 * 1000);
+          if (slaState === "overdue") {
+            and.push({ status: "open", slaDueAt: { $lt: now } });
+          } else if (slaState === "at-risk") {
+            and.push({
+              status: "open",
+              slaDueAt: { $gte: now, $lte: warningWindow },
+            });
+          }
         }
 
         // Preserve creation-time pagination unless SLA ordering was requested.

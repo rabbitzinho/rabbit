@@ -1294,6 +1294,22 @@
                         </option>
                       </select>
                       <select
+                        id="ticketsSlaFilter"
+                        class="select xs"
+                        data-i18n-aria-label="tickets_sla_filter_label"
+                        aria-label="Filter by SLA"
+                      >
+                        <option value="all" data-i18n="tickets_sla_all">
+                          Any SLA status
+                        </option>
+                        <option value="at-risk" data-i18n="tickets_sla_at_risk">
+                          At risk
+                        </option>
+                        <option value="overdue" data-i18n="tickets_sla_overdue">
+                          Overdue
+                        </option>
+                      </select>
+                      <select
                         id="ticketsSortFilter"
                         class="select xs"
                         data-i18n-aria-label="tickets_sort_filter_label"
@@ -1306,6 +1322,15 @@
                           SLA deadline
                         </option>
                       </select>
+                      <input
+                        id="ticketsLabelFilter"
+                        class="input md"
+                        type="search"
+                        data-i18n-aria-label="tickets_label_filter_label"
+                        aria-label="Filter by label"
+                        data-i18n-placeholder="tickets_label_filter_placeholder"
+                        placeholder="Search label"
+                      />
                       <input
                         id="ticketsAssigneeFilter"
                         class="input md"

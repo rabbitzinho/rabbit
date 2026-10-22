@@ -3232,6 +3232,43 @@ body {
   color: var(--danger);
 }
 
+.ticket-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.ticket-sla-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: var(--fs-2xs);
+  border: 1px solid var(--border-soft);
+  background: var(--white-4);
+  color: var(--text);
+}
+
+.ticket-sla-pill--normal {
+  background: rgba(40, 184, 110, 0.12);
+  border-color: rgba(40, 184, 110, 0.45);
+  color: var(--success);
+}
+
+.ticket-sla-pill--at-risk {
+  background: rgba(255, 179, 0, 0.12);
+  border-color: rgba(255, 179, 0, 0.45);
+  color: var(--warning);
+}
+
+.ticket-sla-pill--overdue {
+  background: rgba(255, 94, 94, 0.12);
+  border-color: rgba(255, 94, 94, 0.45);
+  color: var(--danger);
+}
+
 #ticketsManagementPanel details.ticket-section {
   margin-top: 10px;
 }
