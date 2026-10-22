@@ -1,0 +1,51 @@
+# Stack de observabilidade para o .rabbit (Prometheus + Grafana).
+# Ver docs/ROADMAP.md §6.
+#
+# Uso:
+#   1. Define METRICS_TOKEN no .env do bot (o mesmo valor é lido aqui).
+#   2. docker compose -f docker-compose.observability.yml up -d
+#   3. Prometheus -> http://localhost:9090
+#      Grafana    -> http://localhost:3000 (login admin / GRAFANA_ADMIN_PASSWORD)
+#
+# O bot corre fora desta stack (host ou outro compose). O alvo do scrape é
+# BOT_METRICS_TARGET, por defeito host.docker.internal:8000.
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: rabbit-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    environment:
+      # Lidos do .env do projeto (interpolação do compose).
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      BOT_METRICS_TARGET: ${BOT_METRICS_TARGET:-host.docker.internal:8000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: rabbit-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./observability/grafana-datasource.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus-data:
+  grafana-data:

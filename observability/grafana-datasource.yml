@@ -1,0 +1,10 @@
+# Datasource do Grafana provisionada automaticamente (ver docs/ROADMAP.md §6).
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

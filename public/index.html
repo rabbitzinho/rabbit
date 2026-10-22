@@ -1,0 +1,3542 @@
+<!doctype html>
+<html lang="pt" class="i18n-loading">
+  <head>
+    <meta charset="UTF-8" />
+    <title>.rabbit Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/css/tokens.css?v=__ASSET_VERSION__" />
+    <link rel="stylesheet" href="/css/dashboard.css?v=__ASSET_VERSION__" />
+  </head>
+  <body>
+    <a class="skip-link" href="#mainContent" data-i18n="skip_to_content"
+      >Saltar para o conteúdo</a
+    >
+    <div id="loginScreen" class="login-screen hidden">
+      <div class="login-card">
+        <div class="login-brand">
+          <div class="login-brand__logo" aria-hidden="true">
+            <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+              <circle
+                cx="22"
+                cy="22"
+                r="20"
+                stroke="currentColor"
+                stroke-width="1.5"
+                opacity="0.3"
+              />
+              <path
+                d="M14 16c0-2 2-3.5 4-3.5s4 1.5 4 3.5v6c0 1.5-1 2.5-2.5 2.5h-3c-1.5 0-2.5-1-2.5-2.5v-6Z"
+                fill="currentColor"
+                opacity="0.9"
+              />
+              <path
+                d="M26 14c0-1.5 1.5-3 3.5-3s3.5 1.5 3.5 3v4c0 1.5-1 2.5-2.5 2.5h-2c-1.5 0-2.5-1-2.5-2.5v-4Z"
+                fill="currentColor"
+                opacity="0.6"
+              />
+              <circle cx="16.5" cy="17.5" r="1" fill="var(--bg-elevated)" />
+              <circle cx="28.5" cy="15.5" r="0.8" fill="var(--bg-elevated)" />
+            </svg>
+          </div>
+          <div class="login-brand__text">
+            <div class="login-brand__name">.rabbit</div>
+            <div class="login-brand__tagline" data-i18n="login_tagline">
+              Moderação inteligente para Discord
+            </div>
+          </div>
+        </div>
+        <p class="login-subtitle" data-i18n="login_subtitle">
+          Autentica-te para aceder ao painel.
+        </p>
+        <button
+          type="button"
+          class="btn btn-discord"
+          id="loginDiscordBtn"
+          data-i18n="login_with_discord"
+        >
+          Entrar com Discord
+        </button>
+        <button
+          type="button"
+          class="btn btn-ghost"
+          id="loginAddBotBtn"
+          data-i18n="add_bot"
+        >
+          Adicionar bot
+        </button>
+        <div class="login-error" id="loginError"></div>
+      </div>
+    </div>
+
+    <div id="guildSelectScreen" class="login-screen hidden">
+      <div class="login-card">
+        <div class="login-brand">
+          <div class="login-brand__logo" aria-hidden="true">
+            <svg width="36" height="36" viewBox="0 0 44 44" fill="none">
+              <circle
+                cx="22"
+                cy="22"
+                r="20"
+                stroke="currentColor"
+                stroke-width="1.5"
+                opacity="0.3"
+              />
+              <path
+                d="M14 16c0-2 2-3.5 4-3.5s4 1.5 4 3.5v6c0 1.5-1 2.5-2.5 2.5h-3c-1.5 0-2.5-1-2.5-2.5v-6Z"
+                fill="currentColor"
+                opacity="0.9"
+              />
+              <path
+                d="M26 14c0-1.5 1.5-3 3.5-3s3.5 1.5 3.5 3v4c0 1.5-1 2.5-2.5 2.5h-2c-1.5 0-2.5-1-2.5-2.5v-4Z"
+                fill="currentColor"
+                opacity="0.6"
+              />
+              <circle cx="16.5" cy="17.5" r="1" fill="var(--bg-elevated)" />
+              <circle cx="28.5" cy="15.5" r="0.8" fill="var(--bg-elevated)" />
+            </svg>
+          </div>
+          <div class="login-brand__text">
+            <div class="login-brand__name login-brand__name--sm">.rabbit</div>
+          </div>
+        </div>
+        <h1 data-i18n="guild_select_title">Selecionar servidor</h1>
+        <p class="login-subtitle" data-i18n="guild_select_subtitle">
+          Escolhe o servidor que queres gerir.
+        </p>
+        <div id="guildSelectList" class="guild-select-list"></div>
+        <button
+          type="button"
+          class="btn btn-ghost hidden"
+          id="guildSelectPremiumAdmin"
+          data-i18n="guild_select_premium_admin"
+        >
+          Continuar para Gestão Premium
+        </button>
+        <div class="login-error" id="guildSelectError"></div>
+      </div>
+    </div>
+
+    <div class="app" id="appRoot">
+      <!-- Top bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="logo">.rabbit</div>
+          <div class="divider"></div>
+          <div class="top-info">
+            <div data-i18n="app_subtitle">Painel de gestão e moderação</div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select id="guildPicker" class="select">
+            <option value="" data-i18n="select_guild">
+              Selecione um servidor
+            </option>
+          </select>
+
+          <button
+            type="button"
+            class="badge badge-logout"
+            id="addBotBtn"
+            data-i18n="add_bot"
+            data-i18n-aria-label="add_bot"
+          >
+            Adicionar bot
+          </button>
+
+          <span class="badge hidden" id="badgeAccess"></span>
+          <span
+            class="badge hidden"
+            id="badgeSession"
+            role="status"
+            aria-live="polite"
+          ></span>
+
+          <span class="badge" id="badgeBot" role="status" aria-live="polite"
+            >Online</span
+          >
+
+          <div class="prefs-menu" id="prefsMenu">
+            <button
+              type="button"
+              class="badge badge-logout prefs-menu__trigger profile-trigger"
+              id="badgeProfile"
+              aria-haspopup="true"
+              aria-expanded="false"
+              aria-controls="prefsPanel"
+              data-i18n-aria-label="admin_menu_label"
+              aria-label="Admin menu"
+            ></button>
+            <div class="prefs-menu__panel hidden" id="prefsPanel" role="menu">
+              <button
+                type="button"
+                class="prefs-menu__item"
+                id="adminMenuDashboard"
+                role="menuitem"
+                data-i18n="admin_menu_dashboard"
+              >
+                Dashboard
+              </button>
+              <div class="prefs-menu__divider"></div>
+              <button
+                type="button"
+                class="prefs-menu__item"
+                id="themeToggle"
+                role="menuitem"
+                aria-pressed="false"
+                data-i18n="pref_theme_toggle"
+              >
+                Tema
+              </button>
+              <button
+                type="button"
+                class="prefs-menu__item"
+                id="densityToggle"
+                role="menuitem"
+                aria-pressed="false"
+                data-i18n="pref_density_toggle"
+              >
+                Densidade
+              </button>
+              <button
+                type="button"
+                class="prefs-menu__item"
+                id="accountProfileBtn"
+                role="menuitem"
+                data-i18n="profile_title"
+              >
+                Conta
+              </button>
+              <div class="prefs-menu__divider"></div>
+              <button
+                type="button"
+                class="prefs-menu__item prefs-menu__item--danger"
+                id="logoutBtn"
+                role="menuitem"
+                data-i18n="logout"
+                data-i18n-aria-label="logout"
+              >
+                Sair
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <dialog
+        class="account-profile-dialog"
+        id="accountProfileDialog"
+        aria-labelledby="accountProfileTitle"
+      >
+        <div class="account-profile-dialog__head">
+          <div>
+            <span class="badge" data-i18n="profile_discord_account"
+              >Discord account</span
+            >
+            <h2 id="accountProfileTitle" data-i18n="profile_title">Account</h2>
+          </div>
+          <button
+            type="button"
+            class="icon-btn"
+            id="btnCloseAccountProfile"
+            data-i18n-aria-label="common_close"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <dl class="account-profile-details">
+          <div>
+            <dt data-i18n="profile_username">Username</dt>
+            <dd id="accountProfileUsername">—</dd>
+          </div>
+          <div>
+            <dt data-i18n="profile_discord_id">Discord ID</dt>
+            <dd id="accountProfileId">—</dd>
+          </div>
+          <div>
+            <dt data-i18n="profile_access_level">Access level</dt>
+            <dd id="accountProfileRole">—</dd>
+          </div>
+          <div>
+            <dt data-i18n="profile_current_context">Current context</dt>
+            <dd id="accountProfileScope">—</dd>
+          </div>
+        </dl>
+        <p class="hint" data-i18n="profile_discord_managed_hint">
+          Email, password, and avatar are managed by Discord and cannot be
+          changed here.
+        </p>
+        <div class="account-profile-dialog__actions">
+          <a
+            class="btn primary"
+            href="https://discord.com/app"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="profile_manage_discord"
+            >Open Discord account</a
+          >
+          <button
+            type="button"
+            class="btn btn-ghost"
+            id="btnCloseAccountProfileFooter"
+            data-i18n="common_close"
+          >
+            Close
+          </button>
+        </div>
+      </dialog>
+
+      <!-- Tabs -->
+      <div
+        class="tabs"
+        id="tabs"
+        role="tablist"
+        data-i18n-aria-label="tabs_aria_label"
+      >
+        <button
+          class="tab active"
+          id="tabbtn-overview"
+          role="tab"
+          aria-selected="true"
+          aria-controls="tab-overview"
+          tabindex="0"
+          data-tab="overview"
+        >
+          <svg
+            class="tab__icon"
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+          >
+            <rect
+              x="2"
+              y="2"
+              width="5"
+              height="5"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+            <rect
+              x="9"
+              y="2"
+              width="5"
+              height="3"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+            <rect
+              x="9"
+              y="7"
+              width="5"
+              height="7"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+            <rect
+              x="2"
+              y="9"
+              width="5"
+              height="5"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+          </svg>
+          <span data-i18n="tab_overview">Visão geral</span>
+        </button>
+        <button
+          class="tab"
+          id="tabbtn-logs"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-logs"
+          tabindex="-1"
+          data-tab="logs"
+        >
+          <svg
+            class="tab__icon"
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M8 2 3 4v4c0 3 2 5 5 6 3-1 5-3 5-6V4L8 2Z"
+              stroke="currentColor"
+              stroke-width="1.3"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M6 8l1.5 1.5L10 7"
+              stroke="currentColor"
+              stroke-width="1.3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span data-i18n="tab_logs">Moderação</span>
+        </button>
+        <button
+          class="tab"
+          id="tabbtn-features"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-features"
+          tabindex="-1"
+          data-tab="features"
+        >
+          <svg
+            class="tab__icon"
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+          >
+            <rect
+              x="2"
+              y="2"
+              width="4.5"
+              height="4.5"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+            <rect
+              x="9.5"
+              y="2"
+              width="4.5"
+              height="4.5"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+            <rect
+              x="2"
+              y="9.5"
+              width="4.5"
+              height="4.5"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+            <rect
+              x="9.5"
+              y="9.5"
+              width="4.5"
+              height="4.5"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+          </svg>
+          <span data-i18n="tab_features">Funcionalidades</span>
+        </button>
+        <button
+          class="tab"
+          id="tabbtn-user"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-user"
+          tabindex="-1"
+          data-tab="user"
+        >
+          <svg
+            class="tab__icon"
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle
+              cx="6"
+              cy="5.5"
+              r="2.2"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+            <path
+              d="M2 13c0-2.2 1.8-3.8 4-3.8s4 1.6 4 3.8"
+              stroke="currentColor"
+              stroke-width="1.3"
+              stroke-linecap="round"
+            />
+            <path
+              d="M11 5.3a2 2 0 0 1 0 3.4M12 13c0-1.5-.8-2.7-2-3.3"
+              stroke="currentColor"
+              stroke-width="1.3"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span data-i18n="tab_user">Utilizadores</span>
+        </button>
+        <button
+          class="tab"
+          id="tabbtn-config"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-config"
+          tabindex="-1"
+          data-tab="config"
+        >
+          <svg
+            class="tab__icon"
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle
+              cx="8"
+              cy="8"
+              r="2"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+            <path
+              d="M8 1.5v1.8M8 12.7v1.8M14.5 8h-1.8M3.3 8H1.5M12.6 3.4l-1.3 1.3M4.7 11.3l-1.3 1.3M12.6 12.6l-1.3-1.3M4.7 4.7 3.4 3.4"
+              stroke="currentColor"
+              stroke-width="1.3"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span data-i18n="tab_config">Configuração</span>
+        </button>
+        <button
+          class="tab hidden"
+          id="tabbtn-premium-admin"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-premium-admin"
+          tabindex="-1"
+          data-tab="premium-admin"
+        >
+          <svg
+            class="tab__icon"
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M8 2l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 10.8 4.6 12.5l.7-3.8L2.5 6l3.8-.5L8 2Z"
+              stroke="currentColor"
+              stroke-width="1.3"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span data-i18n="tab_management">Gestão</span>
+        </button>
+      </div>
+
+      <!-- Aviso quando não há servidor selecionado -->
+      <div
+        id="tabWarning"
+        class="tab-warning hidden"
+        data-i18n="warn_select_guild"
+      >
+        Selecione um servidor para aceder às restantes secções.
+      </div>
+      <!-- Banner global (estado / avisos contextuais) -->
+      <div
+        id="globalBanner"
+        class="global-banner hidden"
+        role="region"
+        data-i18n-aria-label="banner_aria_label"
+        aria-label="Avisos"
+      >
+        <div class="global-banner__content">
+          <div class="global-banner__title" id="globalBannerTitle"></div>
+          <div class="global-banner__message" id="globalBannerMessage"></div>
+        </div>
+        <div class="global-banner__actions" id="globalBannerActions"></div>
+        <button
+          type="button"
+          class="icon-btn global-banner__close"
+          id="globalBannerClose"
+          data-i18n-aria-label="common_close"
+          aria-label="Fechar"
+        >
+          ×
+        </button>
+      </div>
+
+      <!-- Sections -->
+      <main class="sections" id="mainContent" tabindex="-1">
+        <!-- Overview -->
+        <section
+          class="section active"
+          id="tab-overview"
+          role="tabpanel"
+          aria-labelledby="tabbtn-overview"
+        >
+          <div class="card">
+            <h2 id="overviewTitle" data-i18n="overview_title">Visão geral</h2>
+            <p class="hint" id="overviewHint" data-i18n="overview_global_hint">
+              Estado da plataforma, servidores ligados e atividade recente.
+            </p>
+            <div class="grid-3 overview-kpis" id="overviewKpis">
+              <div class="kpi kpi--guilds" id="overviewGuildKpi">
+                <div class="kpi__top">
+                  <span class="kpi__icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path
+                        d="M10 2.5 2.5 5.8v1.4L10 10.5l7.5-3.3V5.8L10 2.5Z"
+                        stroke="currentColor"
+                        stroke-width="1.3"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M5 8.2v4.6c0 .8 2.2 2.2 5 2.2s5-1.4 5-2.2V8.2"
+                        stroke="currentColor"
+                        stroke-width="1.3"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  <span class="kpi__trend hidden" id="kpiGuildsTrend"></span>
+                </div>
+                <div class="kpi-label" data-i18n="kpi_guilds">
+                  Servidores ligados
+                </div>
+                <div class="kpi-value" id="kpiGuilds">—</div>
+              </div>
+              <div class="kpi kpi--users">
+                <div class="kpi__top">
+                  <span class="kpi__icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <circle
+                        cx="7.5"
+                        cy="6.5"
+                        r="2.8"
+                        stroke="currentColor"
+                        stroke-width="1.3"
+                      />
+                      <path
+                        d="M2 16.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"
+                        stroke="currentColor"
+                        stroke-width="1.3"
+                        stroke-linecap="round"
+                      />
+                      <path
+                        d="M13.5 6.8a2.6 2.6 0 0 1 0 4.8M15 16.5c0-2-1-3.6-2.5-4.5"
+                        stroke="currentColor"
+                        stroke-width="1.3"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  </span>
+                  <span class="kpi__trend hidden" id="kpiUsersTrend"></span>
+                </div>
+                <div class="kpi-label" data-i18n="kpi_users">
+                  Utilizadores monitorizados
+                </div>
+                <div class="kpi-value" id="kpiUsers">—</div>
+              </div>
+              <div class="kpi kpi--actions">
+                <div class="kpi__top">
+                  <span class="kpi__icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path
+                        d="M10 2.5v3M10 14.5v3M3.5 10h-1M17.5 10h-1M5 5 4 4M16 16l-1-1M15 5l1-1M4 16l1-1"
+                        stroke="currentColor"
+                        stroke-width="1.3"
+                        stroke-linecap="round"
+                      />
+                      <circle
+                        cx="10"
+                        cy="10"
+                        r="3.5"
+                        stroke="currentColor"
+                        stroke-width="1.3"
+                      />
+                    </svg>
+                  </span>
+                  <span class="kpi__trend hidden" id="kpiActionsTrend"></span>
+                </div>
+                <div class="kpi-label" data-i18n="kpi_actions_24h">
+                  Ações de moderação (últimas 24h)
+                </div>
+                <div class="kpi-value" id="kpiActions24h">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="card overview-readiness hidden"
+            id="overviewServerReadiness"
+          >
+            <div class="section-head">
+              <div>
+                <h3 data-i18n="overview_readiness_title">
+                  Configuração e estado do servidor
+                </h3>
+                <p class="hint" data-i18n="overview_readiness_hint">
+                  Checklist de configuração e diagnóstico das funcionalidades
+                  ativas.
+                </p>
+              </div>
+              <p
+                class="hint"
+                id="overviewReadinessSummary"
+                role="status"
+                aria-live="polite"
+              ></p>
+            </div>
+            <div class="overview-readiness__columns">
+              <section aria-labelledby="overviewSetupTitle">
+                <h4 id="overviewSetupTitle" data-i18n="overview_setup_title">
+                  Checklist de configuração
+                </h4>
+                <ul
+                  class="overview-readiness__list"
+                  id="overviewSetupChecklist"
+                ></ul>
+              </section>
+              <section aria-labelledby="overviewHealthTitle">
+                <h4 id="overviewHealthTitle" data-i18n="overview_health_title">
+                  Diagnóstico das funcionalidades ativas
+                </h4>
+                <ul
+                  class="overview-readiness__list"
+                  id="overviewFeatureHealth"
+                ></ul>
+              </section>
+            </div>
+          </div>
+
+          <div class="card hidden" id="overviewGlobalInventory">
+            <div class="section-head">
+              <div>
+                <h3 data-i18n="overview_inventory_title">Servidores ligados</h3>
+                <p class="hint" data-i18n="overview_inventory_hint">
+                  A instalação do bot não concede acesso de gestão.
+                </p>
+              </div>
+              <label class="feature-search" for="overviewGuildSearch">
+                <span data-i18n="overview_inventory_search_label"
+                  >Pesquisar servidores</span
+                >
+                <input
+                  class="input"
+                  id="overviewGuildSearch"
+                  type="search"
+                  data-i18n-placeholder="overview_inventory_search_placeholder"
+                  placeholder="Nome do servidor"
+                  autocomplete="off"
+                />
+              </label>
+            </div>
+            <div class="overview-inventory-tools">
+              <div
+                class="overview-inventory-filters"
+                id="overviewGuildFilters"
+                role="group"
+                data-i18n-aria-label="overview_inventory_filters"
+                aria-label="Filtrar servidores"
+              >
+                <button
+                  type="button"
+                  class="overview-inventory-filter active"
+                  data-inventory-filter="all"
+                  aria-pressed="true"
+                  data-i18n="overview_inventory_filter_all"
+                >
+                  Todos
+                </button>
+                <button
+                  type="button"
+                  class="overview-inventory-filter"
+                  data-inventory-filter="manageable"
+                  aria-pressed="false"
+                  data-i18n="overview_inventory_filter_manageable"
+                >
+                  Geríveis
+                </button>
+                <button
+                  type="button"
+                  class="overview-inventory-filter"
+                  data-inventory-filter="connected"
+                  aria-pressed="false"
+                  data-i18n="overview_inventory_filter_connected"
+                >
+                  Só ligados
+                </button>
+              </div>
+              <p
+                class="hint"
+                id="overviewGuildInventorySummary"
+                role="status"
+                aria-live="polite"
+              ></p>
+            </div>
+            <div
+              class="list overview-guild-list"
+              id="overviewGuildInventoryList"
+              role="list"
+            ></div>
+            <p
+              class="empty hidden"
+              id="overviewGuildInventoryEmpty"
+              role="status"
+              aria-live="polite"
+              data-i18n="overview_inventory_empty"
+            >
+              Não foram encontrados servidores.
+            </p>
+          </div>
+
+          <div class="card" id="overviewServerShortcuts">
+            <h3 data-i18n="overview_shortcuts_title">Atalhos</h3>
+            <p class="hint" data-i18n="overview_shortcuts_hint">
+              Vai diretamente para a área que queres gerir.
+            </p>
+            <div class="features-grid" id="overviewShortcuts">
+              <article class="feature-card overview-server-shortcut">
+                <div class="feature-card__head">
+                  <h4 class="feature-card__name" data-i18n="tab_features">
+                    Funcionalidades
+                  </h4>
+                </div>
+                <p class="hint" data-i18n="overview_sc_features">
+                  Liga e configura os módulos opcionais do bot.
+                </p>
+                <div class="feature-card__actions">
+                  <div class="feature-card__actions-left">
+                    <button
+                      class="btn xs"
+                      type="button"
+                      data-goto="features"
+                      data-i18n="overview_open"
+                    >
+                      Abrir
+                    </button>
+                  </div>
+                </div>
+              </article>
+              <article class="feature-card overview-server-shortcut">
+                <div class="feature-card__head">
+                  <h4 class="feature-card__name" data-i18n="tab_logs">
+                    Moderação
+                  </h4>
+                </div>
+                <p class="hint" data-i18n="overview_sc_logs">
+                  Avisos, mutes, bans e restantes ações de moderação.
+                </p>
+                <div class="feature-card__actions">
+                  <div class="feature-card__actions-left">
+                    <button
+                      class="btn xs"
+                      type="button"
+                      data-goto="logs"
+                      data-i18n="overview_open"
+                    >
+                      Abrir
+                    </button>
+                  </div>
+                </div>
+              </article>
+              <article class="feature-card overview-server-shortcut">
+                <div class="feature-card__head">
+                  <h4 class="feature-card__name" data-i18n="tab_user">
+                    Utilizadores
+                  </h4>
+                </div>
+                <p class="hint" data-i18n="overview_sc_users">
+                  Consulta e gere membros, cargos e histórico.
+                </p>
+                <div class="feature-card__actions">
+                  <div class="feature-card__actions-left">
+                    <button
+                      class="btn xs"
+                      type="button"
+                      data-goto="user"
+                      data-i18n="overview_open"
+                    >
+                      Abrir
+                    </button>
+                  </div>
+                </div>
+              </article>
+              <article class="feature-card overview-server-shortcut">
+                <div class="feature-card__head">
+                  <h4 class="feature-card__name" data-i18n="tab_config">
+                    Configuração
+                  </h4>
+                </div>
+                <p class="hint" data-i18n="overview_sc_config">
+                  Preferências do servidor, canais e permissões.
+                </p>
+                <div class="feature-card__actions">
+                  <div class="feature-card__actions-left">
+                    <button
+                      class="btn xs"
+                      type="button"
+                      data-goto="config"
+                      data-i18n="overview_open"
+                    >
+                      Abrir
+                    </button>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <div class="card hidden" id="overviewGlobalShortcuts">
+            <h3 data-i18n="overview_global_actions_title">Gestão global</h3>
+            <p class="hint" data-i18n="overview_global_actions_hint">
+              Configurações da plataforma e administração Premium.
+            </p>
+            <div class="feature-card__actions">
+              <div class="feature-card__actions-left">
+                <button
+                  class="btn xs"
+                  type="button"
+                  data-goto="premium-admin"
+                  data-i18n="overview_open_global_management"
+                >
+                  Abrir Gestão Global
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Logs / Moderação -->
+        <section
+          class="section"
+          id="tab-logs"
+          role="tabpanel"
+          aria-labelledby="tabbtn-logs"
+        >
+          <div class="card">
+            <h2 data-i18n="logs_title">Hub de moderação</h2>
+            <p class="hint" data-i18n="logs_hint">
+              Consulta centralizada de avisos, mutes, bans e restantes ações de
+              moderação.
+            </p>
+
+            <div
+              class="user-layout moderation-panels"
+              id="moderationOverviewLayout"
+            >
+              <div class="user-detail mini-panel" id="modServerInsightsPanel">
+                <h3 data-i18n="logs_server_insights_title">
+                  Análises do Servidor
+                </h3>
+                <p class="hint" data-i18n="logs_server_insights_hint">
+                  Resumo rápido das ações de moderação.
+                </p>
+                <div class="chips" id="modServerInsightsRange">
+                  <button
+                    class="chip chip-active"
+                    data-range="7d"
+                    data-i18n="range_7d"
+                  >
+                    7d
+                  </button>
+                  <button class="chip" data-range="14d" data-i18n="range_14d">
+                    14d
+                  </button>
+                  <button class="chip" data-range="30d" data-i18n="range_30d">
+                    30d
+                  </button>
+                </div>
+                <div id="modServerInsightsContent">
+                  <div class="empty" data-i18n="logs_server_insights_empty">
+                    Ainda não existem dados de moderação no período selecionado.
+                  </div>
+                </div>
+              </div>
+
+              <div class="user-detail mini-panel" id="modTicketsPanel">
+                <h3 data-i18n="logs_tickets_panel_title">
+                  Análises de Tickets
+                </h3>
+                <p class="hint" data-i18n="logs_tickets_panel_hint">
+                  Vista dos tickets recebidos por período.
+                </p>
+                <div class="chips" id="modTicketsRange">
+                  <button
+                    class="chip chip-active"
+                    data-range="7d"
+                    data-i18n="range_7d"
+                  >
+                    7d
+                  </button>
+                  <button class="chip" data-range="14d" data-i18n="range_14d">
+                    14d
+                  </button>
+                  <button class="chip" data-range="30d" data-i18n="range_30d">
+                    30d
+                  </button>
+                </div>
+                <ul class="simple-list" id="modTicketsList">
+                  <li class="empty" data-i18n="logs_tickets_panel_empty">
+                    Não existem tickets no período selecionado.
+                  </li>
+                </ul>
+                <div class="pagination pagination-small">
+                  <button class="btn xs btn-ghost" id="modTicketsPrevPage">
+                    &laquo;
+                  </button>
+                  <button class="btn xs btn-ghost" id="modTicketsNextPage">
+                    &raquo;
+                  </button>
+                </div>
+              </div>
+
+              <div class="user-detail mini-panel" id="modTopOnlinePanel">
+                <h3 data-i18n="logs_top_online_title">
+                  Registo de Utilizadores Online
+                </h3>
+                <p class="hint" data-i18n="logs_top_online_hint">
+                  Vista rápida dos utilizadores mais presentes no servidor.
+                </p>
+                <div class="chips" id="modTopOnlineRange">
+                  <button
+                    class="chip chip-active"
+                    data-range="7d"
+                    data-i18n="range_7d"
+                  >
+                    7d
+                  </button>
+                  <button class="chip" data-range="14d" data-i18n="range_14d">
+                    14d
+                  </button>
+                  <button class="chip" data-range="30d" data-i18n="range_30d">
+                    30d
+                  </button>
+                </div>
+                <ul class="simple-list" id="modTopOnlineList">
+                  <li class="empty" data-i18n="logs_top_online_panel_loading">
+                    A carregar utilizadores...
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <section
+              class="user-detail mini-panel moderation-unban"
+              id="moderationUnbanPanel"
+              aria-labelledby="moderationUnbanTitle"
+            >
+              <div class="moderation-unban__intro">
+                <h3
+                  id="moderationUnbanTitle"
+                  data-i18n="moderation_unban_title"
+                >
+                  Desbanir por ID
+                </h3>
+                <p class="hint" data-i18n="moderation_unban_hint">
+                  Remove um ban usando o ID Discord do utilizador.
+                </p>
+              </div>
+              <form id="moderationUnbanForm" class="row gap">
+                <label class="col" for="moderationUnbanUserId">
+                  <span data-i18n="moderation_unban_user_id"
+                    >ID do utilizador</span
+                  >
+                  <input
+                    id="moderationUnbanUserId"
+                    class="input"
+                    type="text"
+                    autocomplete="off"
+                    inputmode="numeric"
+                    pattern="[0-9]{10,32}"
+                    minlength="10"
+                    maxlength="32"
+                    required
+                  />
+                </label>
+                <label class="col" for="moderationUnbanReason">
+                  <span data-i18n="users_actions_reason_placeholder"
+                    >Motivo (opcional)</span
+                  >
+                  <input
+                    id="moderationUnbanReason"
+                    class="input"
+                    type="text"
+                    maxlength="1000"
+                  />
+                </label>
+                <button
+                  class="btn xs primary"
+                  type="submit"
+                  id="btnModerationUnban"
+                  data-i18n="moderation_unban_submit"
+                >
+                  Desbanir
+                </button>
+                <span
+                  id="moderationUnbanStatus"
+                  class="hint"
+                  role="status"
+                  aria-live="polite"
+                ></span>
+              </form>
+            </section>
+
+            <div class="user-detail mini-panel" id="modServerRecordsPanel">
+              <h3 data-i18n="logs_server_records_title">
+                Registos do Servidor
+              </h3>
+              <p class="hint" data-i18n="logs_server_records_hint">
+                Resumo rápido das ações de moderação nas últimas 24 horas.
+              </p>
+              <div class="row gap">
+                <input
+                  id="logSearch"
+                  class="input"
+                  type="search"
+                  data-i18n-aria-label="logs_search_aria"
+                  aria-label="Procurar logs"
+                  data-i18n-placeholder="logs_search_placeholder"
+                  placeholder="Procurar por utilizador, moderador ou detalhe do log"
+                />
+                <label class="date-field">
+                  <span data-i18n="logs_filter_from">De</span>
+                  <input
+                    id="logFrom"
+                    class="input xs"
+                    type="date"
+                    data-i18n-aria-label="logs_filter_from"
+                  />
+                </label>
+                <label class="date-field">
+                  <span data-i18n="logs_filter_to">Até</span>
+                  <input
+                    id="logTo"
+                    class="input xs"
+                    type="date"
+                    data-i18n-aria-label="logs_filter_to"
+                  />
+                </label>
+                <select
+                  id="logType"
+                  class="select sm"
+                  data-i18n-aria-label="logs_filter_type"
+                  aria-label="Tipo de registo"
+                >
+                  <option value="" data-i18n="logs_filter_all">
+                    Todos os tipos
+                  </option>
+                  <option value="warn" data-i18n="logs_filter_warn">
+                    Warn
+                  </option>
+                  <option value="mute" data-i18n="logs_filter_mute">
+                    Mute
+                  </option>
+                  <option value="unmute" data-i18n="logs_filter_unmute">
+                    Unmute
+                  </option>
+                  <option value="kick" data-i18n="logs_filter_kick">
+                    Kick
+                  </option>
+                  <option value="ban" data-i18n="logs_filter_ban">Ban</option>
+                  <option value="unban" data-i18n="logs_filter_unban">
+                    Unban
+                  </option>
+                  <option value="tickets" data-i18n="logs_filter_tickets">
+                    Tickets
+                  </option>
+                </select>
+                <select
+                  id="logSort"
+                  class="select sm"
+                  data-i18n-aria-label="logs_sort_label"
+                  aria-label="Ordenar por"
+                >
+                  <option value="newest" data-i18n="logs_sort_newest">
+                    Mais recentes
+                  </option>
+                  <option value="oldest" data-i18n="logs_sort_oldest">
+                    Mais antigos
+                  </option>
+                </select>
+                <select
+                  id="logLimit"
+                  class="select xs"
+                  data-i18n-aria-label="logs_filter_limit"
+                  aria-label="Resultados por página"
+                >
+                  <option value="5">5</option>
+                  <option value="10" selected>10</option>
+                  <option value="20">20</option>
+                </select>
+                <button
+                  class="btn xs"
+                  id="btnReloadLogs"
+                  data-i18n="logs_reload"
+                >
+                  Recarregar
+                </button>
+                <button
+                  class="btn xs"
+                  id="btnExportLogs"
+                  data-i18n="logs_export_csv"
+                >
+                  Exportar CSV
+                </button>
+              </div>
+              <details
+                class="logs-results-disclosure"
+                id="logsResultsDisclosure"
+              >
+                <summary
+                  class="details-summary"
+                  data-i18n="logs_results_disclosure"
+                >
+                  Mostrar registos
+                </summary>
+                <div id="logsList" class="list">
+                  <div class="empty" data-i18n="logs_empty">
+                    Não existem registos para o filtro atual.
+                  </div>
+                </div>
+                <div class="row mt-2">
+                  <button
+                    class="btn xs"
+                    id="btnLogsLoadMore"
+                    data-i18n="logs_load_more"
+                  >
+                    Carregar mais
+                  </button>
+                </div>
+              </details>
+            </div>
+
+            <div
+              class="user-detail mini-panel tickets-management-panel hidden"
+              id="ticketsManagementPanel"
+            >
+              <h3 data-i18n="tickets_manage_title">Tickets ativos</h3>
+              <p class="hint" data-i18n="tickets_extras_hint">
+                Consulta e gere tickets ativos, respostas da equipa e o
+                histórico do suporte.
+              </p>
+              <div class="users-layout">
+                <div class="users-left">
+                  <div class="toolbar">
+                    <div class="title" data-i18n="tickets_manage_title">
+                      Tickets ativos
+                    </div>
+                    <div class="toolbar-actions">
+                      <input
+                        id="ticketsSearch"
+                        class="input md"
+                        type="text"
+                        placeholder="Pesquisar..."
+                        data-i18n-placeholder="tickets_search_placeholder"
+                      />
+                      <select id="ticketsStatusFilter" class="select xs">
+                        <option value="open" data-i18n="tickets_filter_open">
+                          Abertos
+                        </option>
+                        <option
+                          value="closed"
+                          data-i18n="tickets_filter_closed"
+                        >
+                          Fechados
+                        </option>
+                        <option value="all" data-i18n="tickets_filter_all">
+                          Todos
+                        </option>
+                      </select>
+                      <button
+                        id="btnReloadTickets"
+                        class="btn xs"
+                        type="button"
+                        data-i18n="reload"
+                      >
+                        Recarregar
+                      </button>
+                    </div>
+                  </div>
+                  <div class="list" id="ticketsList">
+                    <div class="empty" data-i18n="tickets_select_guild">
+                      Selecione um servidor para ver tickets.
+                    </div>
+                  </div>
+                  <div class="row-end mt-2">
+                    <button
+                      id="btnTicketsLoadMore"
+                      class="btn xs hidden"
+                      type="button"
+                      data-i18n="tickets_load_more"
+                    >
+                      Carregar mais
+                    </button>
+                  </div>
+                </div>
+                <div class="users-right">
+                  <div id="ticketDetailPanel" class="mini-panel">
+                    <div class="empty" data-i18n="tickets_detail_empty">
+                      Selecione um ticket para ver detalhes.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="section"
+          id="tab-features"
+          role="tabpanel"
+          aria-labelledby="tabbtn-features"
+        >
+          <div class="card">
+            <h2 data-i18n="features_title">Funcionalidades</h2>
+            <p class="hint" data-i18n="features_hint">
+              Ativa e configura funcionalidades opcionais do bot. Cada uma é
+              independente e pode ser ligada ou desligada a qualquer momento.
+            </p>
+            <div class="feature-toolbar">
+              <div
+                class="feature-filter-group"
+                id="featuresFilters"
+                role="group"
+                aria-label="Filtrar funcionalidades"
+                data-i18n-aria-label="features_filter_label"
+              >
+                <button
+                  class="feature-filter is-selected"
+                  type="button"
+                  data-feature-filter="all"
+                  aria-pressed="true"
+                >
+                  <span data-i18n="features_filter_all">Todas</span>
+                  <span class="feature-filter__count" data-filter-count="all"
+                    >0</span
+                  >
+                </button>
+                <button
+                  class="feature-filter"
+                  type="button"
+                  data-feature-filter="active"
+                  aria-pressed="false"
+                >
+                  <span data-i18n="features_filter_active">Ativas</span>
+                  <span class="feature-filter__count" data-filter-count="active"
+                    >0</span
+                  >
+                </button>
+                <button
+                  class="feature-filter"
+                  type="button"
+                  data-feature-filter="attention"
+                  aria-pressed="false"
+                >
+                  <span data-i18n="features_filter_attention">Atenção</span>
+                  <span
+                    class="feature-filter__count"
+                    data-filter-count="attention"
+                    >0</span
+                  >
+                </button>
+                <button
+                  class="feature-filter"
+                  type="button"
+                  data-feature-filter="disabled"
+                  aria-pressed="false"
+                >
+                  <span data-i18n="features_filter_disabled">Desativadas</span>
+                  <span
+                    class="feature-filter__count"
+                    data-filter-count="disabled"
+                    >0</span
+                  >
+                </button>
+              </div>
+              <label class="feature-search" for="featuresSearch">
+                <span data-i18n="features_search_label"
+                  >Pesquisar funcionalidades</span
+                >
+                <input
+                  class="input"
+                  id="featuresSearch"
+                  type="search"
+                  data-i18n-placeholder="features_search_placeholder"
+                  placeholder="Nome ou descrição"
+                  autocomplete="off"
+                />
+              </label>
+            </div>
+            <p
+              class="empty hidden"
+              id="featuresNoResults"
+              role="status"
+              aria-live="polite"
+              data-i18n="features_no_results"
+            >
+              Nenhuma funcionalidade corresponde à pesquisa.
+            </p>
+            <div class="features-grid" id="featuresGrid"></div>
+          </div>
+        </section>
+
+        <section
+          class="section"
+          id="tab-premium-admin"
+          role="tabpanel"
+          aria-labelledby="tabbtn-premium-admin"
+        >
+          <div class="card">
+            <h2 data-i18n="management_title">Gestão do bot</h2>
+            <p class="hint" data-i18n="management_hint">
+              Manutenção global e gestão de licenças Premium.
+            </p>
+            <dl class="management-status-grid" id="botManagementOverview">
+              <div>
+                <dt data-i18n="management_status_discord">Discord</dt>
+                <dd id="managementDiscordStatus" aria-live="polite">—</dd>
+              </div>
+              <div>
+                <dt data-i18n="management_status_database">Database</dt>
+                <dd id="managementDatabaseStatus" aria-live="polite">—</dd>
+              </div>
+              <div>
+                <dt data-i18n="management_status_guilds">Connected servers</dt>
+                <dd id="managementGuildCount" aria-live="polite">—</dd>
+              </div>
+              <div>
+                <dt data-i18n="management_status_actions">
+                  Moderation actions · 24h
+                </dt>
+                <dd id="managementActionsCount" aria-live="polite">—</dd>
+              </div>
+            </dl>
+            <div class="management-section-head">
+              <h3 data-i18n="management_maintenance_group">
+                Manutenção global
+              </h3>
+              <p class="hint" data-i18n="management_maintenance_group_hint">
+                Controlos globais do bot, disponíveis apenas para o seu
+                proprietário.
+              </p>
+            </div>
+            <section
+              class="card subcard management-maintenance"
+              id="botMaintenancePanel"
+            >
+              <h3 data-i18n="config_maintenance_title">Modo de manutenção</h3>
+              <p class="hint" data-i18n="config_maintenance_hint">
+                Quando ativa, restringe comandos em todos os servidores. A
+                manutenção por servidor é configurada separadamente.
+              </p>
+              <div class="row gap">
+                <div class="col">
+                  <label
+                    for="configMaintenanceEnabled"
+                    data-i18n="config_maintenance_enabled_label"
+                    >Ativar manutenção</label
+                  >
+                  <select id="configMaintenanceEnabled" class="select">
+                    <option value="false" data-i18n="common_no">Não</option>
+                    <option value="true" data-i18n="common_yes">Sim</option>
+                  </select>
+                </div>
+                <div class="col">
+                  <label
+                    for="configMaintenanceMessage"
+                    data-i18n="config_maintenance_message_label"
+                    >Mensagem</label
+                  >
+                  <input
+                    id="configMaintenanceMessage"
+                    class="input"
+                    type="text"
+                    maxlength="180"
+                    data-i18n-placeholder="config_maintenance_message_placeholder"
+                    placeholder="O bot está em manutenção. Tenta mais tarde."
+                  />
+                </div>
+                <div class="col">
+                  <label
+                    for="configMaintenanceAllowStaff"
+                    data-i18n="config_maintenance_allow_staff_label"
+                    >Permitir cargos de staff</label
+                  >
+                  <select id="configMaintenanceAllowStaff" class="select">
+                    <option value="true" data-i18n="common_yes">Sim</option>
+                    <option value="false" data-i18n="common_no">Não</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row gap mt-2">
+                <button
+                  type="button"
+                  class="btn xs primary"
+                  id="btnSaveBotMaintenance"
+                  data-i18n="common_save"
+                >
+                  Guardar
+                </button>
+                <span
+                  class="hint"
+                  id="botMaintenanceStatus"
+                  role="status"
+                  aria-live="polite"
+                ></span>
+              </div>
+            </section>
+            <div class="management-section-head">
+              <h3 data-i18n="management_premium_group">Licenças Premium</h3>
+              <p class="hint" data-i18n="management_premium_group_hint">
+                Configuração comercial e acesso Premium por servidor.
+              </p>
+            </div>
+            <div class="premium-panel__history">
+              <form
+                class="premium-settings-form hidden"
+                id="premiumSettingsForm"
+              >
+                <div class="field">
+                  <label
+                    for="premiumAdminAmount"
+                    data-i18n="premium_admin_amount"
+                    >Preço</label
+                  >
+                  <input
+                    class="input"
+                    id="premiumAdminAmount"
+                    type="number"
+                    value="10.00"
+                    readonly
+                    aria-readonly="true"
+                  />
+                </div>
+                <div class="field">
+                  <label
+                    for="premiumAdminCurrency"
+                    data-i18n="premium_admin_currency"
+                    >Moeda</label
+                  >
+                  <input
+                    class="input"
+                    id="premiumAdminCurrency"
+                    type="text"
+                    value="EUR"
+                    readonly
+                    aria-readonly="true"
+                  />
+                </div>
+                <div class="field">
+                  <label
+                    for="premiumAdminDuration"
+                    data-i18n="premium_admin_duration"
+                    >Duração (dias)</label
+                  >
+                  <input
+                    class="input"
+                    id="premiumAdminDuration"
+                    type="number"
+                    min="1"
+                    max="3660"
+                    step="1"
+                    required
+                  />
+                </div>
+                <div class="field field--wide">
+                  <label
+                    for="premiumAdminPaymentLink"
+                    data-i18n="premium_admin_link"
+                    >Link PayPal de referência</label
+                  >
+                  <input
+                    class="input"
+                    id="premiumAdminPaymentLink"
+                    type="url"
+                    placeholder="https://paypal.me/..."
+                  />
+                </div>
+                <div class="premium-panel__actions">
+                  <button
+                    class="btn xs primary"
+                    id="btnSavePremiumSettings"
+                    type="submit"
+                    data-i18n="common_save"
+                  >
+                    Guardar
+                  </button>
+                  <span
+                    class="hint"
+                    id="premiumSettingsStatus"
+                    role="status"
+                    aria-live="polite"
+                  ></span>
+                </div>
+              </form>
+              <div class="premium-admin-guilds">
+                <div class="premium-admin-guilds__head">
+                  <h3 data-i18n="premium_admin_guilds">Servidores Premium</h3>
+                  <div class="premium-admin-guilds__tools">
+                    <select
+                      class="select"
+                      id="premiumAdminStatusFilter"
+                      data-i18n-aria-label="premium_admin_filter"
+                      aria-label="Filter Premium servers"
+                    >
+                      <option value="all" data-i18n="premium_admin_filter_all">
+                        All licenses
+                      </option>
+                      <option value="active" data-i18n="premium_admin_active">
+                        Active
+                      </option>
+                      <option value="expired" data-i18n="premium_admin_expired">
+                        Expired
+                      </option>
+                      <option
+                        value="disabled"
+                        data-i18n="premium_admin_disabled"
+                      >
+                        Disabled
+                      </option>
+                    </select>
+                    <input
+                      class="input"
+                      id="premiumAdminSearch"
+                      type="search"
+                      data-i18n-placeholder="premium_admin_search_guilds"
+                      placeholder="Pesquisar servidor ou email"
+                    />
+                  </div>
+                </div>
+                <p class="hint" id="premiumAdminSummary" aria-live="polite"></p>
+                <div class="premium-admin-grant__intro">
+                  <h4 data-i18n="premium_admin_grant_title">
+                    Ativar licença manualmente
+                  </h4>
+                  <p class="hint" data-i18n="premium_admin_grant_hint">
+                    Associa uma licença a um servidor pelo respetivo ID.
+                  </p>
+                </div>
+                <form class="premium-admin-grant" id="premiumAdminGrantForm">
+                  <label class="field">
+                    <span data-i18n="premium_admin_guild_id"
+                      >ID do servidor</span
+                    >
+                    <input
+                      class="input"
+                      id="premiumAdminGuildId"
+                      type="text"
+                      inputmode="numeric"
+                      pattern="[0-9]{10,32}"
+                      required
+                      autocomplete="off"
+                      data-i18n-placeholder="premium_admin_guild_id"
+                      placeholder="ID do servidor"
+                    />
+                  </label>
+                  <label class="field">
+                    <span data-i18n="premium_admin_until">Válido até</span>
+                    <input
+                      class="input"
+                      id="premiumAdminGuildUntil"
+                      type="datetime-local"
+                      data-i18n-aria-label="premium_admin_until"
+                      aria-label="Válido até"
+                    />
+                  </label>
+                  <label class="field">
+                    <span data-i18n="premium_admin_note"
+                      >Nota administrativa</span
+                    >
+                    <input
+                      class="input"
+                      id="premiumAdminGuildNote"
+                      type="text"
+                      maxlength="200"
+                      data-i18n-placeholder="premium_admin_note"
+                      placeholder="Nota administrativa"
+                    />
+                  </label>
+                  <button
+                    class="btn primary"
+                    type="submit"
+                    data-i18n="premium_admin_grant"
+                  >
+                    Ativar no servidor
+                  </button>
+                </form>
+                <p
+                  class="hint premium-admin-grant__hint"
+                  data-i18n="premium_admin_until_hint"
+                >
+                  Deixa a validade vazia para conceder acesso permanente.
+                </p>
+                <p
+                  class="hint"
+                  id="premiumAdminGrantStatus"
+                  role="status"
+                  aria-live="polite"
+                ></p>
+                <div class="list" id="premiumGuildsList">
+                  <div class="empty" data-i18n="premium_admin_empty">
+                    Nenhum servidor Premium encontrado.
+                  </div>
+                </div>
+              </div>
+              <div class="premium-admin-payments">
+                <div class="premium-admin-guilds__head">
+                  <h3 data-i18n="premium_payments_title">
+                    Histórico de pagamentos
+                  </h3>
+                  <label>
+                    <span data-i18n="premium_payments_filter"
+                      >Filtrar pagamentos</span
+                    >
+                    <select class="input" id="premiumPaymentsStatus">
+                      <option value="ALL" data-i18n="premium_payment_all">
+                        Todos
+                      </option>
+                      <option
+                        value="COMPLETED"
+                        data-i18n="premium_payment_status_completed"
+                      >
+                        Concluídos
+                      </option>
+                      <option
+                        value="PENDING"
+                        data-i18n="premium_payment_status_pending"
+                      >
+                        Pendentes
+                      </option>
+                      <option
+                        value="PROCESSING"
+                        data-i18n="premium_payment_status_processing"
+                      >
+                        A processar
+                      </option>
+                      <option
+                        value="CANCELLED"
+                        data-i18n="premium_payment_status_cancelled"
+                      >
+                        Cancelados
+                      </option>
+                      <option
+                        value="FAILED"
+                        data-i18n="premium_payment_status_failed"
+                      >
+                        Falhados
+                      </option>
+                    </select>
+                  </label>
+                </div>
+                <div class="list" id="premiumPaymentsList">
+                  <div class="empty" data-i18n="premium_payments_empty">
+                    Ainda não existem pagamentos.
+                  </div>
+                </div>
+                <div class="row mt-2 premium-payments-pagination">
+                  <button
+                    class="btn xs"
+                    id="premiumPaymentsPrevious"
+                    type="button"
+                    data-i18n="premium_payments_previous"
+                  >
+                    Anterior
+                  </button>
+                  <span
+                    class="hint"
+                    id="premiumPaymentsPage"
+                    aria-live="polite"
+                  ></span>
+                  <button
+                    class="btn xs"
+                    id="premiumPaymentsNext"
+                    type="button"
+                    data-i18n="premium_payments_next"
+                  >
+                    Seguinte
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tickets -->
+        <!-- Template dos cartões Premium, transferidos para a grelha de Funcionalidades. -->
+        <section
+          class="section extras-section"
+          id="tab-gamenews"
+          role="region"
+          aria-label="Extras"
+          hidden
+        >
+          <div class="card">
+            <div class="section-head">
+              <h3 data-i18n="extras_title">Extras</h3>
+            </div>
+            <p class="hint" data-i18n="extras_hint">
+              Módulos adicionais do bot: feeds de notícias, voz temporária,
+              tickets, trust e giveaways.
+            </p>
+
+            <dialog
+              class="premium-offer-dialog"
+              id="premiumOfferDialog"
+              aria-labelledby="premiumOfferTitle"
+            >
+              <div class="premium-offer-dialog__head">
+                <div>
+                  <span class="premium-badge" data-i18n="premium_badge"
+                    >Premium</span
+                  >
+                  <h2 id="premiumOfferTitle" data-i18n="premium_offer_title">
+                    Desbloquear Premium
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  class="icon-btn"
+                  id="btnClosePremiumOffer"
+                  data-i18n-aria-label="premium_offer_close"
+                  aria-label="Fechar"
+                >
+                  ×
+                </button>
+              </div>
+              <p class="premium-offer-dialog__plan" id="premiumOfferPlan"></p>
+              <p
+                class="premium-offer-dialog__status"
+                id="premiumOfferStatus"
+                role="status"
+                aria-live="polite"
+              ></p>
+              <div class="premium-panel__included">
+                <strong data-i18n="premium_includes_title"
+                  >O que inclui o Premium</strong
+                >
+                <ul>
+                  <li data-i18n="premium_include_gamenews">
+                    Feeds automáticos de notícias (GameNews)
+                  </li>
+                  <li data-i18n="premium_include_tempvoice">
+                    Canais de voz temporários
+                  </li>
+                  <li data-i18n="premium_include_tickets">
+                    Sistema de tickets
+                  </li>
+                  <li data-i18n="premium_include_trust">
+                    Sistema Trust e respetivas ferramentas
+                  </li>
+                  <li data-i18n="premium_include_giveaways">
+                    Giveaways automáticos
+                  </li>
+                </ul>
+                <small data-i18n="premium_billing_note"
+                  >Licença por servidor, válida pelo período indicado. Sem
+                  renovação automática.</small
+                >
+              </div>
+              <div class="premium-offer-dialog__actions">
+                <button
+                  type="button"
+                  class="btn primary hidden"
+                  id="btnPremiumOfferCheckout"
+                ></button>
+                <a
+                  class="btn primary hidden"
+                  id="premiumOfferReferenceLink"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-i18n="premium_reference_link"
+                  >Link PayPal</a
+                >
+                <button
+                  type="button"
+                  class="btn btn-ghost"
+                  id="btnCancelPremiumOffer"
+                  data-i18n="premium_offer_close"
+                >
+                  Fechar
+                </button>
+              </div>
+            </dialog>
+
+            <div id="extrasGrid">
+              <article
+                class="feature-card is-premium-locked"
+                id="extras-panel-feeds"
+                data-premium="true"
+                data-premium-locked="true"
+                data-premium-module="gamenews"
+              >
+                <div class="feature-card__head">
+                  <label
+                    class="switch"
+                    data-i18n-title="features_enabled"
+                    title="Ativar GameNews"
+                  >
+                    <input
+                      type="checkbox"
+                      id="gamenewsEnabled"
+                      data-i18n-aria-label="features_enabled"
+                      aria-label="Ativar GameNews"
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <h3 class="feature-card__name" data-i18n="gamenews_title">
+                    GameNews
+                  </h3>
+                  <span class="feature-card__tier" data-i18n="premium_badge"
+                    >Premium</span
+                  >
+                  <button
+                    type="button"
+                    class="btn xs btn-ghost premium-card__offer hidden"
+                    data-premium-action="offer"
+                    data-i18n="premium_offer_button"
+                    aria-haspopup="dialog"
+                  >
+                    Ver Premium
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-btn feature-card__toggle hidden"
+                    data-role="toggle"
+                    aria-expanded="false"
+                    aria-controls="extras-feeds-panel"
+                    data-i18n-aria-label="features_details"
+                    aria-label="Detalhes"
+                  >
+                    ▾
+                  </button>
+                </div>
+                <p class="hint" data-i18n="gamenews_hint">
+                  Estado dos feeds de notícias e últimas publicações.
+                </p>
+                <span
+                  class="feature-card__config-state"
+                  data-role="config-state"
+                  data-i18n="features_not_configured"
+                  >Não configurada</span
+                >
+                <div
+                  class="feature-diagnosis"
+                  data-role="diagnosis"
+                  data-status="unknown"
+                >
+                  <div class="feature-diagnosis__header">
+                    <span
+                      class="feature-diagnosis__status"
+                      data-role="diagnosis-status"
+                      role="status"
+                      aria-live="polite"
+                      data-i18n="features_diagnosis_status_unknown"
+                      >Por verificar</span
+                    >
+                    <button
+                      class="btn xs btn-ghost"
+                      type="button"
+                      data-role="diagnose"
+                      data-i18n="features_diagnose"
+                    >
+                      Diagnosticar
+                    </button>
+                  </div>
+                  <ul
+                    class="feature-diagnosis__issues hidden"
+                    data-role="diagnosis-issues"
+                  ></ul>
+                </div>
+                <div
+                  class="feature-card__body hidden"
+                  id="extras-feeds-panel"
+                  inert
+                >
+                  <span
+                    class="feature-card__section-label"
+                    data-i18n="extras_section_config"
+                    >Configuração</span
+                  >
+                  <div class="feature-card__surface">
+                    <div class="feature-card__surface-head">
+                      <div class="feature-card__surface-actions">
+                        <button
+                          id="btnAddGameNewsFeed"
+                          class="btn xs"
+                          type="button"
+                          data-i18n="gamenews_add_feed"
+                        >
+                          Adicionar
+                        </button>
+                      </div>
+                    </div>
+                    <div class="user-layout gamenews-layout">
+                      <!-- Lado esquerdo: lista + ações gerais -->
+                      <div>
+                        <div
+                          class="hint hint-warn hidden gamenews-backup-notice"
+                          id="gamenewsBackupNotice"
+                          role="status"
+                          aria-live="polite"
+                        >
+                          <span id="gamenewsBackupMessage"></span>
+                          <button
+                            type="button"
+                            class="btn xs"
+                            id="btnRestoreGameNewsBackup"
+                            data-i18n="gamenews_backup_restore"
+                          >
+                            Restore backup
+                          </button>
+                        </div>
+                        <div class="list" id="gamenewsFeedsList">
+                          <div class="empty" data-i18n="gamenews_editor_empty">
+                            Nenhum feed de GameNews configurado neste momento.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Lado direito: painel de detalhe (como userDetailPanel) -->
+                      <div
+                        class="user-detail gamenews-detail mini-panel"
+                        id="gamenewsFeedDetailPanel"
+                      >
+                        <div class="empty" data-i18n="gamenews_detail_empty">
+                          Selecione um feed para ver os detalhes e editar a
+                          configuração.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+              <article
+                class="feature-card is-premium-locked"
+                id="extras-panel-tempvoice"
+                data-premium="true"
+                data-premium-locked="true"
+                data-premium-module="tempvoice"
+              >
+                <div class="feature-card__head">
+                  <label
+                    class="switch"
+                    data-i18n-title="tempvoice_enabled_label"
+                    title="Ativar voz temporária"
+                  >
+                    <input
+                      id="tempVoiceHeaderEnabled"
+                      type="checkbox"
+                      data-i18n-aria-label="tempvoice_enabled_label"
+                      aria-label="Ativar voz temporária"
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <h3 class="feature-card__name" data-i18n="tempvoice_title">
+                    Voz temporária
+                  </h3>
+                  <span class="feature-card__tier" data-i18n="premium_badge"
+                    >Premium</span
+                  >
+                  <button
+                    type="button"
+                    class="btn xs btn-ghost premium-card__offer hidden"
+                    data-premium-action="offer"
+                    data-i18n="premium_offer_button"
+                    aria-haspopup="dialog"
+                  >
+                    Ver Premium
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-btn feature-card__toggle hidden"
+                    data-role="toggle"
+                    aria-expanded="false"
+                    aria-controls="extras-tempvoice-panel"
+                    data-i18n-aria-label="features_details"
+                    aria-label="Detalhes"
+                  >
+                    ▾
+                  </button>
+                </div>
+                <p class="hint" data-i18n="tempvoice_hint">
+                  Cria canais de voz temporários por utilizador, que são
+                  apagados automaticamente quando ficam vazios.
+                </p>
+                <span
+                  class="feature-card__config-state"
+                  data-role="config-state"
+                  data-i18n="features_not_configured"
+                  >Não configurada</span
+                >
+                <div
+                  class="feature-diagnosis"
+                  data-role="diagnosis"
+                  data-status="unknown"
+                >
+                  <div class="feature-diagnosis__header">
+                    <span
+                      class="feature-diagnosis__status"
+                      data-role="diagnosis-status"
+                      role="status"
+                      aria-live="polite"
+                      data-i18n="features_diagnosis_status_unknown"
+                      >Por verificar</span
+                    >
+                    <button
+                      class="btn xs btn-ghost"
+                      type="button"
+                      data-role="diagnose"
+                      data-i18n="features_diagnose"
+                    >
+                      Diagnosticar
+                    </button>
+                  </div>
+                  <ul
+                    class="feature-diagnosis__issues hidden"
+                    data-role="diagnosis-issues"
+                  ></ul>
+                </div>
+                <div
+                  class="feature-card__body hidden"
+                  id="extras-tempvoice-panel"
+                  inert
+                >
+                  <span
+                    class="feature-card__section-label"
+                    data-i18n="extras_section_config"
+                    >Configuração</span
+                  >
+                  <div class="feature-card__surface">
+                    <div class="feature-card__surface-head">
+                      <div class="feature-card__surface-actions">
+                        <select
+                          id="tempVoiceAddBaseSelect"
+                          class="select flex-1"
+                        ></select>
+                        <button
+                          id="btnTempVoiceAddBase"
+                          class="btn xs"
+                          type="button"
+                          data-i18n="tempvoice_add_base_btn"
+                        >
+                          Adicionar
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="user-layout">
+                      <div>
+                        <div class="list" id="tempVoiceBaseList">
+                          <div
+                            class="empty"
+                            data-i18n="tempvoice_base_list_empty"
+                          >
+                            Ainda não existem canais base configurados.
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        class="user-detail mini-panel"
+                        id="tempVoiceDetailPanel"
+                      >
+                        <div
+                          class="empty"
+                          id="tempVoiceDetailEmpty"
+                          data-i18n="tempvoice_detail_empty"
+                        >
+                          Selecione um canal base para editar as configurações.
+                        </div>
+
+                        <div id="tempVoiceDetailContent" class="hidden">
+                          <h4 data-i18n="tempvoice_detail_title">
+                            Configurações de Canal de Voz Temporário
+                          </h4>
+                          <p class="hint" data-i18n="tempvoice_detail_hint">
+                            Define o comportamento global das salas temporárias
+                            criadas a partir dos canais base.
+                          </p>
+
+                          <h5
+                            id="tempVoiceCurrentBaseLabel"
+                            class="subtitle"
+                            data-i18n="tempvoice_current_base"
+                          >
+                            Canal base: (nenhum selecionado)
+                          </h5>
+
+                          <div class="field">
+                            <label
+                              for="tempVoiceEnabled"
+                              data-i18n="tempvoice_enabled_label"
+                              >Ativar voz temporária</label
+                            >
+                            <select id="tempVoiceEnabled" class="select">
+                              <option
+                                value="false"
+                                data-i18n="tempvoice_disabled"
+                              >
+                                Desativado
+                              </option>
+                              <option
+                                value="true"
+                                data-i18n="tempvoice_enabled"
+                              >
+                                Ativado
+                              </option>
+                            </select>
+                          </div>
+                          <div class="field">
+                            <label
+                              for="tempVoiceCategoryId"
+                              data-i18n="tempvoice_category_label"
+                              >Categoria para criar salas temporárias</label
+                            >
+                            <select
+                              id="tempVoiceCategoryId"
+                              class="input"
+                            ></select>
+                          </div>
+
+                          <div class="field">
+                            <label
+                              for="tempVoiceDeleteDelay"
+                              data-i18n="tempvoice_delete_delay_label"
+                              >Tempo para apagar sala vazia (segundos)</label
+                            >
+                            <input
+                              id="tempVoiceDeleteDelay"
+                              class="input"
+                              type="number"
+                              min="2"
+                              max="600"
+                              step="1"
+                            />
+                          </div>
+
+                          <div class="field">
+                            <label
+                              for="tempVoiceMaxUsers"
+                              data-i18n="tempvoice_max_users_label"
+                              >Limite máximo de utilizadores por sala</label
+                            >
+                            <input
+                              id="tempVoiceMaxUsers"
+                              class="input"
+                              type="number"
+                              min="1"
+                              max="99"
+                              step="1"
+                              data-i18n-placeholder="common_optional"
+                              placeholder="(opcional)"
+                            />
+                          </div>
+
+                          <div class="field field-spaced-top">
+                            <h5
+                              class="mt-0 mb-2"
+                              data-i18n="tempvoice_actions_title"
+                            >
+                              Ações
+                            </h5>
+                            <div class="actions tempvoice-actions-top">
+                              <button
+                                id="btnSaveTempVoice"
+                                class="btn xs"
+                                type="button"
+                                data-i18n="common_save"
+                              >
+                                Guardar
+                              </button>
+                              <button
+                                id="btnDeleteTempVoiceBase"
+                                class="btn xs danger"
+                                type="button"
+                                data-i18n="tempvoice_delete_btn"
+                              >
+                                Remover
+                              </button>
+                            </div>
+                            <div
+                              class="hint hidden mt-1"
+                              id="tvDirtyHint"
+                            ></div>
+                          </div>
+
+                          <div class="field field-spaced-top">
+                            <div class="tempvoice-active-header">
+                              <h5 data-i18n="tempvoice_active_title">
+                                Salas temporárias ativas
+                              </h5>
+                              <span
+                                class="badge"
+                                id="tempVoiceActiveCount"
+                                aria-live="polite"
+                                >—</span
+                              >
+                            </div>
+                            <div class="list" id="tempVoiceActiveList">
+                              <div
+                                class="empty"
+                                data-i18n="tempvoice_active_empty"
+                              >
+                                Não existem salas temporárias neste momento.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+              <article
+                class="feature-card is-premium-locked"
+                id="extras-panel-trust"
+                data-premium="true"
+                data-premium-locked="true"
+                data-premium-module="trust"
+              >
+                <div class="feature-card__head">
+                  <label
+                    class="switch"
+                    data-i18n-title="features_enabled"
+                    title="Ativar Trust"
+                  >
+                    <input
+                      type="checkbox"
+                      id="trustEnabled"
+                      data-role="trust-enabled"
+                      data-i18n-aria-label="features_enabled"
+                      aria-label="Ativar Trust"
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <h3 class="feature-card__name" data-i18n="extras_trust_title">
+                    Sistema de Trust
+                  </h3>
+                  <span class="feature-card__tier" data-i18n="premium_badge"
+                    >Premium</span
+                  >
+                  <button
+                    type="button"
+                    class="btn xs btn-ghost premium-card__offer hidden"
+                    data-premium-action="offer"
+                    data-i18n="premium_offer_button"
+                    aria-haspopup="dialog"
+                  >
+                    Ver Premium
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-btn feature-card__toggle hidden"
+                    data-role="toggle"
+                    aria-expanded="false"
+                    aria-controls="extras-trust-panel"
+                    data-i18n-aria-label="features_details"
+                    aria-label="Detalhes"
+                  >
+                    ▾
+                  </button>
+                </div>
+                <p class="hint" data-i18n="extras_trust_hint">
+                  Visão geral do sistema de confiança usado para avaliar o risco
+                  dos utilizadores com base no seu histórico.
+                </p>
+                <span
+                  class="feature-card__config-state"
+                  data-role="config-state"
+                  data-i18n="features_not_configured"
+                  >Não configurada</span
+                >
+                <div
+                  class="feature-diagnosis"
+                  data-role="diagnosis"
+                  data-status="unknown"
+                >
+                  <div class="feature-diagnosis__header">
+                    <span
+                      class="feature-diagnosis__status"
+                      data-role="diagnosis-status"
+                      role="status"
+                      aria-live="polite"
+                      data-i18n="features_diagnosis_status_unknown"
+                      >Por verificar</span
+                    >
+                    <button
+                      class="btn xs btn-ghost"
+                      type="button"
+                      data-role="diagnose"
+                      data-i18n="features_diagnose"
+                    >
+                      Diagnosticar
+                    </button>
+                  </div>
+                  <ul
+                    class="feature-diagnosis__issues hidden"
+                    data-role="diagnosis-issues"
+                  ></ul>
+                </div>
+                <div
+                  class="feature-card__body hidden"
+                  id="extras-trust-panel"
+                  inert
+                >
+                  <span
+                    class="feature-card__section-label"
+                    data-i18n="extras_section_config"
+                    >Configuração</span
+                  >
+                  <div class="feature-card__surface">
+                    <div class="trust-layout">
+                      <div class="trust-form-block">
+                        <div class="trust-form-row">
+                          <label
+                            for="trustPresetSelect"
+                            data-i18n="trust_preset_label"
+                            >Preset</label
+                          >
+                          <div class="row gap">
+                            <select
+                              id="trustPresetSelect"
+                              class="select"
+                              disabled
+                            >
+                              <option
+                                value="balanced"
+                                data-i18n="trust_preset_balanced"
+                              >
+                                Equilibrado
+                              </option>
+                              <option
+                                value="strict"
+                                data-i18n="trust_preset_strict"
+                              >
+                                Rigoroso
+                              </option>
+                              <option
+                                value="relaxed"
+                                data-i18n="trust_preset_relaxed"
+                              >
+                                Flexível
+                              </option>
+                              <option
+                                value="custom"
+                                data-i18n="trust_preset_custom"
+                              >
+                                Personalizado
+                              </option>
+                            </select>
+                            <button
+                              id="btnApplyTrustPreset"
+                              class="btn xs"
+                              type="button"
+                              disabled
+                              data-i18n="trust_preset_apply"
+                            >
+                              Aplicar
+                            </button>
+                          </div>
+                          <div class="hint" data-i18n="trust_preset_hint">
+                            Escolha um preset e aplique. Depois pode ajustar
+                            manualmente e guardar.
+                          </div>
+                        </div>
+
+                        <div class="trust-form-row">
+                          <label
+                            for="trustBaseInput"
+                            data-i18n="config_trust_base"
+                            >Base level</label
+                          >
+                          <input
+                            id="trustBaseInput"
+                            type="number"
+                            class="input"
+                            value="50"
+                            disabled
+                          />
+                        </div>
+
+                        <div class="trust-form-row">
+                          <label data-i18n="config_trust_minmax"
+                            >Minimum / Maximum</label
+                          >
+                          <div class="row gap">
+                            <input
+                              id="trustMinInput"
+                              type="number"
+                              class="input xs"
+                              value="0"
+                              disabled
+                            />
+                            <input
+                              id="trustMaxInput"
+                              type="number"
+                              class="input xs"
+                              value="100"
+                              disabled
+                            />
+                          </div>
+                        </div>
+
+                        <div class="trust-form-row">
+                          <label data-i18n="config_trust_penalties"
+                            >Penalties</label
+                          >
+                          <div class="row gap">
+                            <input
+                              id="trustWarnPenaltyInput"
+                              type="number"
+                              class="input xs"
+                              data-i18n-placeholder="trust_ph_warn"
+                              placeholder="WARN"
+                              value="10"
+                              disabled
+                            />
+                            <input
+                              id="trustMutePenaltyInput"
+                              type="number"
+                              class="input xs"
+                              data-i18n-placeholder="trust_ph_mute"
+                              placeholder="MUTE"
+                              value="25"
+                              disabled
+                            />
+                          </div>
+                        </div>
+
+                        <div class="trust-form-row">
+                          <label data-i18n="config_trust_regen"
+                            >Regeneration</label
+                          >
+                          <div class="row gap">
+                            <input
+                              id="trustRegenPerDayInput"
+                              type="number"
+                              class="input xs"
+                              data-i18n-placeholder="trust_ph_per_day"
+                              placeholder="por dia"
+                              value="5"
+                              disabled
+                            />
+                            <input
+                              id="trustRegenMaxDaysInput"
+                              type="number"
+                              class="input xs"
+                              data-i18n-placeholder="trust_ph_max_days"
+                              placeholder="máx. dias"
+                              value="14"
+                              disabled
+                            />
+                          </div>
+                        </div>
+
+                        <div class="trust-form-row">
+                          <label data-i18n="config_trust_risk"
+                            >Thresholds</label
+                          >
+                          <div class="row gap">
+                            <input
+                              id="trustLowThresholdInput"
+                              type="number"
+                              class="input xs"
+                              data-i18n-placeholder="trust_ph_low"
+                              placeholder="baixo"
+                              value="30"
+                              disabled
+                            />
+                            <input
+                              id="trustHighThresholdInput"
+                              type="number"
+                              class="input xs"
+                              data-i18n-placeholder="trust_ph_high"
+                              placeholder="alto"
+                              value="70"
+                              disabled
+                            />
+                          </div>
+                        </div>
+
+                        <div class="row gap mt-3">
+                          <button
+                            id="btnSaveTrustConfig"
+                            class="btn xs"
+                            type="button"
+                            disabled
+                            data-i18n="trust_save"
+                          >
+                            Guardar Trust
+                          </button>
+                          <span class="hint" id="trustSaveStatus"></span>
+                        </div>
+                      </div>
+                      <div class="trust-preview-block">
+                        <h4 data-i18n="extras_trust_preview_title">Resumo</h4>
+
+                        <div class="trust-config-grid">
+                          <div class="trust-config-item">
+                            <div class="label" data-i18n="trust_preview_base">
+                              Base
+                            </div>
+                            <div class="value" id="trustBaseValue">—</div>
+                          </div>
+                          <div class="trust-config-item">
+                            <div class="label" data-i18n="trust_preview_minmax">
+                              Mín / Máx
+                            </div>
+                            <div class="value" id="trustMinMaxValue">—</div>
+                          </div>
+                          <div class="trust-config-item">
+                            <div
+                              class="label"
+                              data-i18n="trust_preview_penalties"
+                            >
+                              Penalizações
+                            </div>
+                            <div class="value" id="trustPenaltiesValue">—</div>
+                          </div>
+                          <div class="trust-config-item">
+                            <div class="label" data-i18n="trust_preview_regen">
+                              Regeneração
+                            </div>
+                            <div class="value" id="trustRegenValue">—</div>
+                          </div>
+                          <div class="trust-config-item">
+                            <div class="label" data-i18n="trust_preview_risk">
+                              Thresholds
+                            </div>
+                            <div class="value" id="trustRiskValue">—</div>
+                          </div>
+                        </div>
+
+                        <h4 class="mt-3" data-i18n="trust_distribution_title">
+                          Distribuição por nível
+                        </h4>
+                        <div id="trustDistribution" class="trust-dist">
+                          <div
+                            class="hint"
+                            data-i18n="trust_distribution_loading"
+                          >
+                            A carregar…
+                          </div>
+                        </div>
+
+                        <h4 class="mt-3" data-i18n="extras_trust_info_title">
+                          Como funciona
+                        </h4>
+                        <div
+                          class="trust-info"
+                          data-i18n="extras_trust_info_body"
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+              <article
+                class="feature-card is-premium-locked"
+                id="extras-panel-giveaways"
+                data-premium="true"
+                data-premium-locked="true"
+                data-premium-module="giveaways"
+              >
+                <div class="feature-card__head">
+                  <label
+                    class="switch"
+                    data-i18n-title="giveaways_enabled"
+                    title="Ativar Free-To-Keep"
+                  >
+                    <input
+                      type="checkbox"
+                      id="giveawaysEnabled"
+                      data-i18n-aria-label="giveaways_enabled"
+                      aria-label="Ativar Free-To-Keep"
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <h3 class="feature-card__name" data-i18n="giveaways_title">
+                    Giveaways
+                  </h3>
+                  <span class="feature-card__tier" data-i18n="premium_badge"
+                    >Premium</span
+                  >
+                  <button
+                    type="button"
+                    class="btn xs btn-ghost premium-card__offer hidden"
+                    data-premium-action="offer"
+                    data-i18n="premium_offer_button"
+                    aria-haspopup="dialog"
+                  >
+                    Ver Premium
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-btn feature-card__toggle hidden"
+                    data-role="toggle"
+                    aria-expanded="false"
+                    aria-controls="extras-giveaways-panel"
+                    data-i18n-aria-label="features_details"
+                    aria-label="Detalhes"
+                  >
+                    ▾
+                  </button>
+                </div>
+                <p class="hint" data-i18n="giveaways_hint">
+                  Publica automaticamente giveaways do GamerPower no canal
+                  escolhido, assim que aparecem.
+                </p>
+                <span
+                  class="feature-card__config-state"
+                  data-role="config-state"
+                  data-i18n="features_not_configured"
+                  >Não configurada</span
+                >
+                <div
+                  class="feature-diagnosis"
+                  data-role="diagnosis"
+                  data-status="unknown"
+                >
+                  <div class="feature-diagnosis__header">
+                    <span
+                      class="feature-diagnosis__status"
+                      data-role="diagnosis-status"
+                      role="status"
+                      aria-live="polite"
+                      data-i18n="features_diagnosis_status_unknown"
+                      >Por verificar</span
+                    >
+                    <button
+                      class="btn xs btn-ghost"
+                      type="button"
+                      data-role="diagnose"
+                      data-i18n="features_diagnose"
+                    >
+                      Diagnosticar
+                    </button>
+                  </div>
+                  <ul
+                    class="feature-diagnosis__issues hidden"
+                    data-role="diagnosis-issues"
+                  ></ul>
+                </div>
+                <div
+                  class="ftk-summary"
+                  id="giveawaysSummary"
+                  aria-live="polite"
+                ></div>
+                <div
+                  class="feature-card__body hidden"
+                  id="extras-giveaways-panel"
+                  inert
+                >
+                  <span
+                    class="feature-card__section-label"
+                    data-i18n="extras_section_status"
+                    >Estado</span
+                  >
+                  <div class="feature-card__surface">
+                    <div
+                      class="status-card"
+                      id="giveawaysStatusCard"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      <div class="status-row">
+                        <span class="status-label" data-i18n="giveaways_status"
+                          >Estado</span
+                        >
+                        <span class="status-pill" id="giveawaysStatusValue"
+                          >—</span
+                        >
+                      </div>
+                      <div class="status-row">
+                        <span
+                          class="status-label"
+                          data-i18n="giveaways_status_channel"
+                          >Canal</span
+                        >
+                        <span class="status-value" id="giveawaysStatusChannel"
+                          >—</span
+                        >
+                      </div>
+                      <div class="status-row">
+                        <span
+                          class="status-label"
+                          data-i18n="giveaways_status_last"
+                          >Última verificação</span
+                        >
+                        <span class="status-value" id="giveawaysStatusLast"
+                          >—</span
+                        >
+                      </div>
+                      <div class="status-row">
+                        <span
+                          class="status-label"
+                          data-i18n="giveaways_status_next"
+                          >Próxima verificação</span
+                        >
+                        <span class="status-value" id="giveawaysStatusNext"
+                          >—</span
+                        >
+                      </div>
+                      <div class="status-row">
+                        <span
+                          class="status-label"
+                          data-i18n="giveaways_status_last_sent"
+                          >Último envio</span
+                        >
+                        <span class="status-value" id="giveawaysStatusSent"
+                          >—</span
+                        >
+                      </div>
+                      <div
+                        class="status-row status-row--error hidden"
+                        id="giveawaysStatusErrorRow"
+                      >
+                        <span
+                          class="status-label"
+                          data-i18n="giveaways_status_error"
+                          >Erro</span
+                        >
+                        <span class="status-value" id="giveawaysStatusError"
+                          >—</span
+                        >
+                      </div>
+                    </div>
+
+                    <div class="grid-2 ftk-grid">
+                      <div>
+                        <div class="ftk-config-card">
+                          <div id="giveawaysControls" class="ftk-controls">
+                            <div class="field">
+                              <label
+                                for="giveawaysChannel"
+                                data-i18n="giveaways_channel"
+                                >Canal de publicação</label
+                              >
+                              <div class="channel-picker">
+                                <input
+                                  id="giveawaysChannelSearch"
+                                  class="input"
+                                  type="text"
+                                  data-i18n-placeholder="giveaways_channel_search"
+                                  placeholder="Procurar canal…"
+                                />
+                                <select id="giveawaysChannel" class="select">
+                                  <option value="" data-i18n="select_channel">
+                                    Seleciona um canal
+                                  </option>
+                                </select>
+                              </div>
+                              <div
+                                class="hint"
+                                data-i18n="giveaways_channel_hint"
+                              >
+                                O bot publica no canal selecionado assim que
+                                surgirem novos jogos.
+                              </div>
+                            </div>
+
+                            <div class="field">
+                              <label data-i18n="giveaways_platforms"
+                                >Plataformas</label
+                              >
+                              <div
+                                class="platform-grid"
+                                id="giveawaysPlatforms"
+                              >
+                                <label class="platform-pill">
+                                  <input type="checkbox" value="steam" />
+                                  <img
+                                    class="platform-pill__icon"
+                                    src="/assets/platform-badges/steam.png"
+                                    alt="Steam"
+                                  />
+                                  <span>Steam</span>
+                                </label>
+                                <label class="platform-pill">
+                                  <input
+                                    type="checkbox"
+                                    value="epic-games-store"
+                                  />
+                                  <img
+                                    class="platform-pill__icon"
+                                    src="/assets/platform-badges/epic.png"
+                                    alt="Epic Games"
+                                  />
+                                  <span>Epic Games</span>
+                                </label>
+                                <label class="platform-pill">
+                                  <input type="checkbox" value="ubisoft" />
+                                  <img
+                                    class="platform-pill__icon"
+                                    src="/assets/platform-badges/ubisoft.png"
+                                    alt="Ubisoft"
+                                  />
+                                  <span>Ubisoft</span>
+                                </label>
+                              </div>
+                              <div
+                                class="hint hint-warn hidden"
+                                id="giveawaysPlatformsWarn"
+                                data-i18n="giveaways_platforms_warn"
+                              >
+                                Seleciona pelo menos uma plataforma.
+                              </div>
+                            </div>
+
+                            <details
+                              class="ftk-advanced"
+                              id="giveawaysAdvanced"
+                            >
+                              <summary data-i18n="giveaways_advanced">
+                                Definições avançadas
+                              </summary>
+                              <div class="ftk-advanced__body">
+                                <div class="grid-2 mt-1">
+                                  <div class="field">
+                                    <label
+                                      for="giveawaysPoll"
+                                      data-i18n="giveaways_poll"
+                                      >Intervalo (s)</label
+                                    >
+                                    <input
+                                      id="giveawaysPoll"
+                                      class="input"
+                                      type="number"
+                                      min="60"
+                                      max="3600"
+                                      value="60"
+                                    />
+                                  </div>
+                                  <div class="field">
+                                    <label
+                                      for="giveawaysMaxPerCycle"
+                                      data-i18n="giveaways_max_cycle"
+                                      >Máx / ciclo (0 = todos)</label
+                                    >
+                                    <input
+                                      id="giveawaysMaxPerCycle"
+                                      class="input"
+                                      type="number"
+                                      min="0"
+                                      max="50"
+                                      value="0"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </details>
+
+                            <div class="actions ftk-actions">
+                              <div class="actions-left">
+                                <button
+                                  class="btn xs"
+                                  id="giveawaysSaveBtn"
+                                  type="button"
+                                  data-i18n="common_save"
+                                >
+                                  Guardar
+                                </button>
+                                <span
+                                  class="hint"
+                                  id="giveawaysSavedHint"
+                                ></span>
+                              </div>
+                              <div class="actions-right">
+                                <button
+                                  class="btn xs"
+                                  id="giveawaysTriggerBtn"
+                                  data-i18n="giveaways_trigger"
+                                >
+                                  Verificar agora
+                                </button>
+                                <button
+                                  class="btn xs"
+                                  id="giveawaysTestBtn"
+                                  data-i18n="giveaways_test"
+                                >
+                                  Enviar teste
+                                </button>
+                                <button
+                                  class="btn xs"
+                                  id="giveawaysResetBtn"
+                                  data-i18n="giveaways_reset"
+                                >
+                                  Repor
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div class="preview-card">
+                          <div class="preview-title" data-i18n="preview">
+                            Preview
+                          </div>
+                          <div
+                            id="giveawaysPreview"
+                            class="giveaway-preview"
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="section"
+          id="tab-user"
+          role="tabpanel"
+          aria-labelledby="tabbtn-user"
+        >
+          <div class="card">
+            <h2 data-i18n="users_title">Utilizadores</h2>
+            <p class="hint" data-i18n="users_hint">
+              Consulta rápida de utilizadores e histórico de moderação por
+              utilizador.
+            </p>
+            <p class="hint users-members" id="usersMemberCount"></p>
+
+            <div class="user-layout users-layout">
+              <div>
+                <div class="row gap mb-2 users-toolbar">
+                  <input
+                    id="usersSearch"
+                    class="input"
+                    data-i18n-placeholder="users_search_placeholder"
+                    placeholder="Procurar utilizador ou ID"
+                  />
+                  <select
+                    id="usersLimit"
+                    class="select xs"
+                    data-i18n-aria-label="users_limit_label"
+                    aria-label="Resultados"
+                  >
+                    <option value="25">25</option>
+                    <option value="50" selected>50</option>
+                    <option value="100">100</option>
+                  </select>
+                  <select
+                    id="usersSort"
+                    class="select sm"
+                    data-i18n-aria-label="users_sort_label"
+                    aria-label="Ordenar por"
+                  >
+                    <option value="name" data-i18n="users_sort_name">
+                      Nome
+                    </option>
+                    <option value="joined" data-i18n="users_sort_joined">
+                      Data de entrada
+                    </option>
+                    <option value="id" data-i18n="users_sort_id">ID</option>
+                  </select>
+                  <div class="users-toolbar-actions">
+                    <label class="checkbox-inline">
+                      <input type="checkbox" id="usersIncludeBots" />
+                      <span data-i18n="users_include_bots">Mostrar bots</span>
+                    </label>
+                    <button
+                      class="btn xs"
+                      id="btnReloadUsers"
+                      data-i18n="users_reload"
+                    >
+                      Recarregar
+                    </button>
+                    <button
+                      class="btn xs"
+                      id="btnSyncUsers"
+                      data-i18n="users_sync"
+                    >
+                      Sincronizar
+                    </button>
+                    <button
+                      class="btn xs"
+                      id="btnExportUsersCsv"
+                      data-i18n="users_export_csv"
+                    >
+                      Exportar CSV
+                    </button>
+                    <button
+                      class="btn xs"
+                      id="btnExportUsersJson"
+                      data-i18n="users_export_json"
+                    >
+                      Exportar JSON
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  class="hint users-results"
+                  id="usersResultCount"
+                  role="status"
+                  aria-live="polite"
+                ></div>
+
+                <div class="list" id="usersList">
+                  <div class="empty" data-i18n="users_empty">
+                    Selecione um servidor para ver utilizadores.
+                  </div>
+                </div>
+
+                <div class="row mt-2">
+                  <button
+                    class="btn xs"
+                    id="btnUsersLoadMore"
+                    data-i18n="users_load_more"
+                  >
+                    Carregar mais
+                  </button>
+                </div>
+              </div>
+
+              <div class="user-detail mini-panel" id="userDetailPanel">
+                <div class="empty" data-i18n="users_detail_empty">
+                  Selecione um utilizador para ver o histórico de moderação e
+                  tickets.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="section"
+          id="tab-config"
+          role="tabpanel"
+          aria-labelledby="tabbtn-config"
+        >
+          <div class="card">
+            <h2 data-i18n="config_title">Configuração do servidor</h2>
+            <p class="hint" data-i18n="config_hint">
+              Defina canais, cargos de staff e preferências de registo para este
+              servidor.
+            </p>
+
+            <div
+              class="config-nav"
+              data-i18n-aria-label="config_nav_aria_label"
+              aria-label="Config navigation"
+            >
+              <a
+                class="config-pill"
+                href="#config-section-guild"
+                data-i18n="config_nav_guild"
+                >Servidor</a
+              >
+              <a
+                class="config-pill"
+                href="#config-section-logs"
+                data-i18n="config_nav_logs"
+                >Logs</a
+              >
+              <a
+                class="config-pill"
+                href="#config-section-access"
+                data-i18n="config_nav_access"
+                >Acesso</a
+              >
+              <a
+                class="config-pill"
+                href="#config-section-advanced"
+                data-i18n="config_nav_advanced"
+                >Avançado</a
+              >
+              <a
+                class="config-pill"
+                href="#config-section-audit"
+                data-i18n="config_nav_audit"
+                >Auditoria</a
+              >
+            </div>
+
+            <div class="config-form">
+              <div class="card subcard" id="config-section-guild">
+                <h3 data-i18n="config_guild_settings_title">
+                  Preferências do servidor
+                </h3>
+                <p class="hint" data-i18n="config_guild_settings_hint">
+                  Defina o idioma principal e a timezone usados pela dashboard
+                  para este servidor.
+                </p>
+
+                <div class="row gap">
+                  <div class="field">
+                    <label
+                      for="configServerLanguage"
+                      data-i18n="config_server_language_label"
+                      >Idioma principal do servidor</label
+                    >
+                    <select id="configServerLanguage" class="select">
+                      <option
+                        value="auto"
+                        data-i18n="config_server_language_auto"
+                      >
+                        Automático (seguir idioma do cliente)
+                      </option>
+                      <option value="pt" data-i18n="config_server_language_pt">
+                        Português
+                      </option>
+                      <option value="en" data-i18n="config_server_language_en">
+                        English
+                      </option>
+                    </select>
+                  </div>
+
+                  <div class="field">
+                    <label
+                      for="configServerTimezone"
+                      data-i18n="config_server_timezone_label"
+                      >Timezone do servidor</label
+                    >
+                    <input
+                      id="configServerTimezone"
+                      class="input"
+                      type="text"
+                      placeholder="Europe/Lisbon"
+                    />
+                  </div>
+                </div>
+                <p class="hint" data-i18n="config_server_timezone_hint">
+                  Use um identificador IANA (por exemplo, Europe/Lisbon). Se
+                  ficar vazio, é usado o fuso horário padrão do servidor.
+                </p>
+              </div>
+
+              <div class="card subcard" id="config-section-logs">
+                <h3 data-i18n="config_logs_section_title">
+                  Registos e canais de logs
+                </h3>
+                <p class="hint" data-i18n="config_logs_section_hint">
+                  Defina os canais onde serão enviados os registos principais e
+                  os logs da própria dashboard.
+                </p>
+
+                <div class="row gap">
+                  <div class="col">
+                    <label for="configLogChannel" data-i18n="config_log_channel"
+                      >Canal de logs principal</label
+                    >
+                    <select id="configLogChannel" class="select"></select>
+                  </div>
+                  <div class="col">
+                    <label
+                      for="configDashboardLogChannel"
+                      data-i18n="config_dashboard_log_channel"
+                      >Canal de logs da dashboard</label
+                    >
+                    <select
+                      id="configDashboardLogChannel"
+                      class="select"
+                    ></select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card subcard" id="config-section-access">
+                <h3 data-i18n="config_access_section_title">
+                  Acesso e cargos de staff
+                </h3>
+                <p class="hint" data-i18n="config_access_section_hint">
+                  O login na dashboard é feito apenas via Discord OAuth e é
+                  restrito a Owners e Administradores do servidor. Aqui definis
+                  apenas os cargos de staff usados pelo bot.
+                </p>
+
+                <div class="row gap staff-roles-row">
+                  <div class="col">
+                    <label for="configStaffRoles" data-i18n="config_staff_roles"
+                      >Cargos de staff</label
+                    >
+                    <select
+                      id="configStaffRoles"
+                      class="select role-picker-hidden"
+                      multiple
+                    ></select>
+                    <div class="role-picker" data-target="configStaffRoles">
+                      <div class="role-chips" id="configStaffRolesChips"></div>
+                      <div class="role-add-row">
+                        <select
+                          id="configStaffRolesAdd"
+                          class="select"
+                        ></select>
+                        <button
+                          type="button"
+                          class="btn xs"
+                          id="configStaffRolesAddBtn"
+                          data-i18n="config_rolepicker_add"
+                        >
+                          Adicionar
+                        </button>
+                      </div>
+                    </div>
+                    <p class="hint" data-i18n="config_staff_roles_hint">
+                      Se vazio, são usadas as roles de staff globais definidas
+                      no ficheiro de configuração.
+                    </p>
+                  </div>
+                </div>
+                <details class="staff-role-overrides">
+                  <summary data-i18n="config_staff_roles_overrides">
+                    Cargos específicos por área
+                  </summary>
+                  <div class="staff-role-feature-grid">
+                    <div class="field">
+                      <label
+                        for="staffRolesModeration"
+                        data-i18n="config_staff_roles_moderation"
+                        >Moderação</label
+                      >
+                      <select
+                        id="staffRolesModeration"
+                        class="select"
+                        multiple
+                        size="4"
+                      ></select>
+                      <p
+                        class="hint"
+                        data-i18n="config_staff_roles_feature_hint"
+                      >
+                        Se vazio, usa a lista geral de cargos de staff.
+                      </p>
+                    </div>
+                    <div class="field">
+                      <label
+                        for="staffRolesTickets"
+                        data-i18n="config_staff_roles_tickets"
+                        >Tickets</label
+                      >
+                      <select
+                        id="staffRolesTickets"
+                        class="select"
+                        multiple
+                        size="4"
+                      ></select>
+                      <p
+                        class="hint"
+                        data-i18n="config_staff_roles_feature_hint"
+                      >
+                        Se vazio, usa a lista geral de cargos de staff.
+                      </p>
+                    </div>
+                  </div>
+                </details>
+                <section
+                  class="staff-role-preview"
+                  aria-labelledby="staffRolePreviewTitle"
+                >
+                  <div>
+                    <h4
+                      id="staffRolePreviewTitle"
+                      data-i18n="config_staff_preview_title"
+                    >
+                      Pré-visualização de acesso da equipa
+                    </h4>
+                    <p class="hint" data-i18n="config_staff_preview_hint">
+                      Simula os controlos de cargo para comandos de Moderação e
+                      Tickets. Não simula Administradores do Discord nem acesso
+                      OAuth à dashboard.
+                    </p>
+                  </div>
+                  <label class="field" for="staffRolePreview">
+                    <span data-i18n="config_staff_preview_role"
+                      >Cargo a testar</span
+                    >
+                    <select class="select" id="staffRolePreview">
+                      <option
+                        value=""
+                        data-i18n="config_staff_preview_select_role"
+                      >
+                        Seleciona um cargo
+                      </option>
+                    </select>
+                  </label>
+                  <div class="staff-role-preview__results" aria-live="polite">
+                    <div class="staff-role-preview__result">
+                      <span data-i18n="config_staff_preview_moderation"
+                        >Comandos de moderação</span
+                      >
+                      <strong id="staffRolePreviewModeration">—</strong>
+                    </div>
+                    <div class="staff-role-preview__result">
+                      <span data-i18n="config_staff_preview_tickets"
+                        >Comandos de Tickets</span
+                      >
+                      <strong id="staffRolePreviewTickets">—</strong>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <div class="card subcard" id="config-section-advanced">
+                <details class="config-advanced">
+                  <summary data-i18n="config_json_section_title">
+                    Avançado: importar/exportar configuração
+                  </summary>
+                  <p class="hint" data-i18n="config_json_section_hint">
+                    Exporta a configuração atual deste servidor para JSON ou
+                    aplica rapidamente uma configuração já preparada.
+                  </p>
+
+                  <div class="row gap">
+                    <div class="col">
+                      <label data-i18n="config_json_export_label"
+                        >Exportar configuração atual</label
+                      >
+                      <textarea
+                        id="configJsonExport"
+                        class="input"
+                        rows="6"
+                        readonly
+                      ></textarea>
+                      <button
+                        type="button"
+                        class="btn xs"
+                        id="configJsonExportBtn"
+                        data-i18n="config_json_export_btn"
+                      >
+                        Gerar JSON
+                      </button>
+                    </div>
+                    <div class="col">
+                      <label
+                        for="configJsonImport"
+                        data-i18n="config_json_import_label"
+                        >Importar configuração (JSON)</label
+                      >
+                      <textarea
+                        id="configJsonImport"
+                        class="input"
+                        rows="6"
+                      ></textarea>
+                      <button
+                        type="button"
+                        class="btn xs primary"
+                        id="configJsonImportBtn"
+                        data-i18n="config_json_import_btn"
+                      >
+                        Aplicar JSON
+                      </button>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              <div class="card subcard" id="config-section-audit">
+                <h3 data-i18n="audit_title">Auditoria</h3>
+                <p class="hint" data-i18n="audit_hint">
+                  Registo das ações feitas na dashboard: alterações de
+                  configuração, moderação, tickets e extras.
+                </p>
+
+                <div class="row gap mb-2 audit-toolbar">
+                  <input
+                    id="auditSearch"
+                    class="input"
+                    data-i18n-placeholder="audit_search_placeholder"
+                    placeholder="Procurar por autor, ação ou rota"
+                  />
+                  <select
+                    id="auditActionFilter"
+                    class="select sm"
+                    data-i18n-aria-label="audit_filter_action"
+                  >
+                    <option value="" data-keep="1" data-i18n="audit_filter_all">
+                      Todas as ações
+                    </option>
+                  </select>
+                  <select
+                    id="auditLimit"
+                    class="select xs"
+                    data-i18n-aria-label="audit_limit_label"
+                  >
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                  <button
+                    type="button"
+                    class="btn xs"
+                    id="btnReloadAudit"
+                    data-i18n="audit_reload"
+                  >
+                    Recarregar
+                  </button>
+                </div>
+
+                <div
+                  class="hint users-results"
+                  id="auditResultCount"
+                  role="status"
+                  aria-live="polite"
+                ></div>
+
+                <div class="list" id="auditList"></div>
+                <div class="row mt-2">
+                  <button
+                    class="btn xs"
+                    id="btnAuditLoadMore"
+                    data-i18n="audit_load_more"
+                  >
+                    Carregar mais
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="config-actions-footer">
+              <button
+                type="button"
+                class="btn xs"
+                id="btnReloadGuildConfig"
+                data-i18n="config_reload"
+              >
+                Recarregar
+              </button>
+              <button
+                type="button"
+                class="btn xs primary"
+                id="btnSaveGuildConfig"
+                data-i18n="config_save"
+              >
+                Guardar configuração
+              </button>
+            </div>
+            <div id="configStatus" class="hint mt-2"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      window.OZARK_BUILD = "20261016f";
+    </script>
+    <script src="/js/i18n.js?v=__ASSET_VERSION__" defer></script>
+    <script src="/js/dashboard.js?v=__ASSET_VERSION__" defer></script>
+    <script src="/js/dashboard.users.js?v=__ASSET_VERSION__" defer></script>
+    <script
+      src="/js/dashboard.moderation.js?v=__ASSET_VERSION__"
+      defer
+    ></script>
+    <script src="/js/dashboard.gamenews.js?v=__ASSET_VERSION__" defer></script>
+    <script src="/js/dashboard.tickets.js?v=__ASSET_VERSION__" defer></script>
+    <script src="/js/dashboard.giveaways.js?v=__ASSET_VERSION__" defer></script>
+    <script src="/js/dashboard.features.js?v=__ASSET_VERSION__" defer></script>
+    <script src="/js/dashboard.premium.js?v=__ASSET_VERSION__" defer></script>
+    <script src="/js/dashboard.audit.js?v=__ASSET_VERSION__" defer></script>
+  </body>
+</html>

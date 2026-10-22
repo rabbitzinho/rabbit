@@ -1,0 +1,26 @@
+# Scrape config do endpoint interno de métricas do .rabbit (ver docs/ROADMAP.md §6).
+#
+# O endpoint responde em /api/internal/metrics com o header
+# `Authorization: Bearer <METRICS_TOKEN>` (o Prometheus não consegue enviar
+# headers personalizados, por isso o x-metrics-token não serve aqui).
+#
+# ${METRICS_TOKEN} e ${BOT_METRICS_TARGET} são lidos do ambiente do container
+# Prometheus (ver docker-compose.observability.yml).
+
+global:
+  scrape_interval: 30s
+  scrape_timeout: 10s
+  external_labels:
+    service: rabbit-bot
+
+scrape_configs:
+  - job_name: rabbit-bot
+    scheme: http
+    metrics_path: /api/internal/metrics
+    params:
+      format: ["prometheus"]
+    authorization:
+      type: Bearer
+      credentials: "${METRICS_TOKEN}"
+    static_configs:
+      - targets: ["${BOT_METRICS_TARGET}"]
