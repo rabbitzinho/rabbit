@@ -122,6 +122,10 @@ window.OzarkLocales.pt = {
   config_staff_roles: "Cargos da equipa",
   config_staff_roles_hint:
     "Cargos da equipa deste servidor. Podes atribuir cargos diferentes a cada módulo.",
+  config_ticket_labels: "Etiquetas padrão de Tickets",
+  config_ticket_labels_hint:
+    "Etiquetas sugeridas para tickets deste servidor. Usa vírgulas ou linhas separadas.",
+  config_ticket_labels_placeholder: "pagamento, erro, conta",
   config_staff_roles_moderation: "Moderação",
   config_staff_roles_tickets: "Tickets",
   config_staff_roles_gamenews: "Equipa de notícias",

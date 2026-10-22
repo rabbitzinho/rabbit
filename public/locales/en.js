@@ -119,6 +119,10 @@ window.OzarkLocales.en = {
   config_staff_roles: "Staff roles",
   config_staff_roles_hint:
     "Staff roles for this server. You can assign different roles to specific modules.",
+  config_ticket_labels: "Default ticket labels",
+  config_ticket_labels_hint:
+    "Suggested labels for support tickets in this server. Use commas or line breaks.",
+  config_ticket_labels_placeholder: "billing, bug, account",
   config_staff_roles_moderation: "Moderation",
   config_staff_roles_tickets: "Support tickets",
   config_staff_roles_gamenews: "News staff",

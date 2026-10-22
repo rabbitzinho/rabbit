@@ -2568,6 +2568,12 @@
         document.getElementById("staffRolesTickets"),
         staffByFeature.tickets,
       );
+      const configTicketLabels = document.getElementById("configTicketLabels");
+      if (configTicketLabels) {
+        configTicketLabels.value = Array.isArray(conf.ticketLabels)
+          ? conf.ticketLabels.join(", ")
+          : "";
+      }
 
       function getSelectedValues(sel) {
         const out = [];
@@ -3059,6 +3065,18 @@
         },
       );
     }
+    const ticketLabelsInput = document.getElementById("configTicketLabels");
+    const ticketLabels = ticketLabelsInput
+      ? String(ticketLabelsInput.value || "")
+          .split(/[\n,]/)
+          .map(function (str) {
+            return String(str || "").trim();
+          })
+          .filter(function (label) {
+            return label.length > 0;
+          })
+          .slice(0, 25)
+      : [];
     function selectedRoles(id) {
       const select = document.getElementById(id);
       return select
@@ -3135,6 +3153,7 @@
           dashboardLogChannelId: dashLogChannelId,
           staffRoleIds: staffRoleIds,
           staffRolesByFeature: staffRolesByFeature,
+          ticketLabels: ticketLabels,
           language: language,
           timezone: timezone,
         },
