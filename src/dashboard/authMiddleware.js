@@ -111,6 +111,7 @@ function createAuthMiddleware({ jwt, JWT_SECRET, sanitizeId, config }) {
             ? "GUILD_ADMIN"
             : "USER",
         username: payload.username || "discord",
+        avatarUrl: typeof payload.avatarUrl === "string" ? payload.avatarUrl : null,
         permissions:
           payload.permissions && typeof payload.permissions === "object"
             ? payload.permissions

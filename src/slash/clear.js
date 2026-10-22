@@ -1,6 +1,6 @@
 // src/slash/clear.js
 
-const { PermissionsBitField } = require("discord.js");
+const { MessageFlags, PermissionsBitField } = require("discord.js");
 
 const logger = require("../systems/logger");
 const { tContext } = require("../systems/i18n");
@@ -106,7 +106,7 @@ async function clearSlash(client, interaction) {
 
     const amount = interaction.options.getInteger("amount", true);
     const toDelete = Math.max(1, Math.min(MAX_CLEAR_AMOUNT, amount));
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const result = await deleteMessages(interaction.channel, toDelete);
 

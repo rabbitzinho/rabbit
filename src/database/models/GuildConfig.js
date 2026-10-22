@@ -6,8 +6,8 @@ const guildConfigSchema = new Schema(
   {
     guildId: { type: String, required: true, unique: true },
 
-    // Idioma principal do servidor (auto|pt|en)
-    language: { type: String, default: "auto" },
+    // Idioma principal do servidor (en|pt|auto)
+    language: { type: String, default: "en" },
 
     // Timezone principal do servidor (IANA, ex: Europe/Lisbon). Null => usa UTC.
     timezone: { type: String, default: null },

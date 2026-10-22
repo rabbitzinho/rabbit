@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt" class="i18n-loading">
+<html lang="en" class="i18n-loading">
   <head>
     <meta charset="UTF-8" />
     <title>.rabbit Dashboard</title>
@@ -45,25 +45,31 @@
             </div>
           </div>
         </div>
+        <h1 data-i18n="login_heading">Sign in to .rabbit</h1>
         <p class="login-subtitle" data-i18n="login_subtitle">
-          Autentica-te para aceder ao painel.
+          Use your Discord account to manage your servers.
         </p>
-        <button
-          type="button"
-          class="btn btn-discord"
-          id="loginDiscordBtn"
-          data-i18n="login_with_discord"
-        >
-          Entrar com Discord
-        </button>
-        <button
-          type="button"
-          class="btn btn-ghost"
-          id="loginAddBotBtn"
-          data-i18n="add_bot"
-        >
-          Adicionar bot
-        </button>
+        <div class="login-actions">
+          <button
+            type="button"
+            class="btn btn-discord"
+            id="loginDiscordBtn"
+            data-i18n="login_with_discord"
+          >
+            Login with Discord
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost"
+            id="loginAddBotBtn"
+            data-i18n="add_bot"
+          >
+            Add bot
+          </button>
+        </div>
+        <p class="login-access-hint" data-i18n="login_access_hint">
+          Discord handles authentication. Server access requires administrator permissions.
+        </p>
         <div class="login-error" id="loginError"></div>
       </div>
     </div>
@@ -133,16 +139,6 @@
             </option>
           </select>
 
-          <button
-            type="button"
-            class="badge badge-logout"
-            id="addBotBtn"
-            data-i18n="add_bot"
-            data-i18n-aria-label="add_bot"
-          >
-            Adicionar bot
-          </button>
-
           <span class="badge hidden" id="badgeAccess"></span>
           <span
             class="badge hidden"
@@ -165,7 +161,10 @@
               aria-controls="prefsPanel"
               data-i18n-aria-label="admin_menu_label"
               aria-label="Admin menu"
-            ></button>
+            >
+              <img id="badgeProfileAvatar" class="discord-avatar hidden" alt="" />
+              <span data-role="profile-label"></span>
+            </button>
             <div class="prefs-menu__panel hidden" id="prefsPanel" role="menu">
               <button
                 type="button"
@@ -232,7 +231,10 @@
             <span class="badge" data-i18n="profile_discord_account"
               >Discord account</span
             >
-            <h2 id="accountProfileTitle" data-i18n="profile_title">Account</h2>
+            <div class="account-profile-dialog__identity">
+              <img id="accountProfileAvatar" class="discord-avatar hidden" alt="" />
+              <h2 id="accountProfileTitle" data-i18n="profile_title">Account</h2>
+            </div>
           </div>
           <button
             type="button"
@@ -1613,7 +1615,13 @@
                     />
                   </div>
                 </div>
-                <p class="hint" id="premiumAdminSummary" aria-live="polite"></p>
+                <div
+                  class="premium-admin-metrics"
+                  id="premiumAdminSummary"
+                  aria-live="polite"
+                  data-i18n-aria-label="premium_admin_summary_aria"
+                  aria-label="Premium license summary"
+                ></div>
                 <div class="premium-admin-grant__intro">
                   <h4 data-i18n="premium_admin_grant_title">
                     Ativar licença manualmente
@@ -2726,11 +2734,6 @@
                     data-role="diagnosis-issues"
                   ></ul>
                 </div>
-                <div
-                  class="ftk-summary"
-                  id="giveawaysSummary"
-                  aria-live="polite"
-                ></div>
                 <div
                   class="feature-card__body hidden"
                   id="extras-giveaways-panel"

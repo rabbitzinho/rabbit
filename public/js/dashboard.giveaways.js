@@ -138,50 +138,6 @@
     }
   }
 
-  function updateSummaryChips() {
-    const el = q("giveawaysSummary");
-    if (!el) return;
-    const enabled = !!(q("giveawaysEnabled") && q("giveawaysEnabled").checked);
-    const platforms = readChecks("giveawaysPlatforms");
-    const poll = q("giveawaysPoll") ? Number(q("giveawaysPoll").value || 0) : 0;
-    const maxPer = q("giveawaysMaxPerCycle")
-      ? Number(q("giveawaysMaxPerCycle").value || 0)
-      : 0;
-
-    const parts = [];
-    parts.push(
-      '<span class="ftk-chip"><strong>' +
-        escapeHtml(
-          enabled
-            ? t("giveaways_status_active") || "Ativo"
-            : t("giveaways_status_inactive") || "Inativo",
-        ) +
-        "</strong></span>",
-    );
-    parts.push(
-      '<span class="ftk-chip">' +
-        escapeHtml(t("giveaways_platforms") || "Plataformas") +
-        ": <strong>" +
-        escapeHtml(String(platforms.length || 0)) +
-        "</strong></span>",
-    );
-    parts.push(
-      '<span class="ftk-chip">' +
-        escapeHtml(t("giveaways_poll") || "Intervalo") +
-        ": <strong>" +
-        escapeHtml(String(poll || 60)) +
-        "s</strong></span>",
-    );
-    parts.push(
-      '<span class="ftk-chip">' +
-        escapeHtml(t("giveaways_max_cycle") || "Máx / ciclo") +
-        ": <strong>" +
-        escapeHtml(String(maxPer || 0)) +
-        "</strong></span>",
-    );
-    el.innerHTML = parts.join("");
-  }
-
   async function triggerGiveawaysNow() {
     const guildId = getGuildId();
     if (!guildId) return;
@@ -307,7 +263,6 @@
           t("giveaways_preview_disabled") || "Ativa para ver a preview.",
         ) +
         "</div>";
-      updateSummaryChips();
       return;
     }
 
@@ -400,8 +355,6 @@
       "</span>" +
       (footerRight ? "<span>" + footerRight + "</span>" : "") +
       "</div>";
-
-    updateSummaryChips();
 
     function platformLogoUrl(p) {
       p = String(p || "").toLowerCase();
@@ -596,7 +549,6 @@
       );
 
     await renderPreview();
-    updateSummaryChips();
   }
 
   async function saveGiveaways() {
@@ -694,7 +646,6 @@
       // Reload channels to make sure the chosen value exists in the select.
       await loadChannelsIntoSelect();
       await renderPreview();
-      updateSummaryChips();
       return true;
     } finally {
       savingGiveaways = false;

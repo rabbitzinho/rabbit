@@ -323,7 +323,7 @@ async function readBodyTextLimited(res, maxBytes, controller) {
 
 async function fetchFeedXmlWithGuards(urlStr, record, opts = {}) {
   const timeoutMs = Number(opts.timeoutMs ?? 15_000);
-  const maxBytes = Number(opts.maxBytes ?? 1_500_000);
+  const maxBytes = Number(opts.maxBytes ?? 5_000_000);
   const maxRedirects = Number(opts.maxRedirects ?? 5);
   const dnsTimeoutMs = Number(opts.dnsTimeoutMs ?? 2000);
 
@@ -1017,7 +1017,7 @@ async function gameNewsSystem(client, config) {
           try {
             const fetchOpts = {
               timeoutMs: Number(config.gameNews?.timeoutMs ?? 15_000),
-              maxBytes: Number(config.gameNews?.maxXmlBytes ?? 1_500_000),
+              maxBytes: Number(config.gameNews?.maxXmlBytes ?? 5_000_000),
               maxRedirects: Number(config.gameNews?.maxRedirects ?? 5),
               dnsTimeoutMs: Number(config.gameNews?.dnsTimeoutMs ?? 2000),
             };
@@ -1257,7 +1257,7 @@ async function testSendGameNews({ client, config, guildId, feedId }) {
   // Fetch RSS feed once (conditional GET may return null when 304 Not Modified)
   const fetchOpts = {
     timeoutMs: Number(cfg.gameNews?.timeoutMs ?? 15_000),
-    maxBytes: Number(cfg.gameNews?.maxXmlBytes ?? 1_500_000),
+    maxBytes: Number(cfg.gameNews?.maxXmlBytes ?? 5_000_000),
     maxRedirects: Number(cfg.gameNews?.maxRedirects ?? 5),
     dnsTimeoutMs: Number(cfg.gameNews?.dnsTimeoutMs ?? 2000),
   };

@@ -48,7 +48,7 @@
   window.OzarkDashboard = window.OzarkDashboard || {};
 
   const state = {
-    lang: "pt",
+    lang: "en",
     guildId: null,
     guildsLoaded: false,
     currentTab: "overview",
@@ -95,24 +95,11 @@
   const API_BASE = "/api";
   const GUILD_KEY = "DASHBOARD_GUILD_ID";
 
-  function getBrowserLanguage() {
-    var languages = [];
-    try {
-      languages = Array.isArray(navigator.languages)
-        ? navigator.languages.slice()
-        : [];
-      if (navigator.language) languages.push(navigator.language);
-    } catch {}
-    for (var i = 0; i < languages.length; i++) {
-      var language = String(languages[i] || "")
-        .toLowerCase()
-        .split("-")[0];
-      if (language === "en" || language === "pt") return language;
-    }
-    return "pt";
+  function getDefaultLanguage() {
+    return "en";
   }
 
-  state.lang = getBrowserLanguage();
+  state.lang = getDefaultLanguage();
 
   // Clean up the "selectGuild" hint left by the OAuth callback.
   // The session token itself lives in an HttpOnly cookie set by the backend,
@@ -731,16 +718,16 @@
   async function setDashboardLanguage(language) {
     var sequence = ++dashboardLanguageSequence;
     var selectedLanguage =
-      language === "en" || language === "pt" ? language : getBrowserLanguage();
+      language === "en" || language === "pt" ? language : getDefaultLanguage();
 
     try {
       await window.OzarkDashboard.I18n.init(selectedLanguage);
     } catch (err) {
       if (sequence !== dashboardLanguageSequence) return;
       console.error("Failed to load dashboard language", selectedLanguage, err);
-      selectedLanguage = "pt";
+      selectedLanguage = "en";
       try {
-        await window.OzarkDashboard.I18n.init("pt");
+        await window.OzarkDashboard.I18n.init("en");
       } catch (fallbackError) {
         console.error(
           "Failed to load fallback dashboard language",
@@ -758,7 +745,7 @@
   async function loadGuildDashboardLanguage(guildId) {
     var sequence = ++dashboardLanguageSequence;
     if (!guildId || !(state.perms.canViewConfig || state.perms.canEditConfig)) {
-      await setDashboardLanguage(getBrowserLanguage());
+      await setDashboardLanguage(getDefaultLanguage());
       return;
     }
 
@@ -776,7 +763,7 @@
       if (sequence !== dashboardLanguageSequence || state.guildId !== guildId)
         return;
       console.error("Failed to load configured dashboard language", err);
-      await setDashboardLanguage(getBrowserLanguage());
+      await setDashboardLanguage(getDefaultLanguage());
     }
   }
 
@@ -832,10 +819,19 @@
       return;
     }
 
-    elProfile.textContent =
-      me.role === "BOT_OWNER"
-        ? t("profile_bot_owner")
-        : me.username || "Discord";
+    var profileLabel = elProfile.querySelector('[data-role="profile-label"]');
+    var profileAvatar = document.getElementById("badgeProfileAvatar");
+    if (profileLabel) {
+      profileLabel.textContent =
+        me.role === "BOT_OWNER"
+          ? t("profile_bot_owner")
+          : me.username || "Discord";
+    }
+    if (profileAvatar) {
+      profileAvatar.classList.toggle("hidden", !me.avatarUrl);
+      if (me.avatarUrl) profileAvatar.src = me.avatarUrl;
+      else profileAvatar.removeAttribute("src");
+    }
     elProfile.classList.remove("badge-premium");
     elProfile.classList.toggle("badge-bot-owner", me.role === "BOT_OWNER");
     elProfile.classList.remove("hidden");
@@ -3853,13 +3849,13 @@
 
     // Bot status badge
     refreshBotStatusBadge();
-    setInterval(refreshBotStatusBadge, 20000);
+    setInterval(refreshBotStatusBadge, 5000);
 
     // Tempo online (duração da sessão atual)
     updateSessionBadge();
     setInterval(updateSessionBadge, 30000);
 
-    // i18n inicial: segue o idioma do browser suportado (EN/PT).
+    // English is the global default; explicit server settings may override it.
     var languageReady = Promise.resolve();
     window.OzarkDashboard = window.OzarkDashboard || {};
     window.OzarkDashboard.I18n = window.OzarkDashboard.I18n || {};
@@ -3867,8 +3863,8 @@
       languageReady = window.OzarkDashboard.I18n.init(state.lang)
         .catch(function (err) {
           console.error("Failed to load dashboard language", state.lang, err);
-          state.lang = "pt";
-          return window.OzarkDashboard.I18n.init("pt").catch(
+          state.lang = "en";
+          return window.OzarkDashboard.I18n.init("en").catch(
             function (fallbackError) {
               console.error(
                 "Failed to load fallback dashboard language",
@@ -4584,25 +4580,6 @@
       });
     }
 
-    var addBotBtn = document.getElementById("addBotBtn");
-    if (addBotBtn && !addBotBtn.dataset.bound) {
-      addBotBtn.dataset.bound = "1";
-      addBotBtn.addEventListener("click", function () {
-        (async function () {
-          try {
-            var r = await apiGet("/invite");
-            if (r && r.ok && r.url) {
-              window.open(r.url, "_blank", "noopener");
-            } else {
-              toast(t("add_bot_error"), { type: "error" });
-            }
-          } catch {
-            toast(t("add_bot_error"), { type: "error" });
-          }
-        })();
-      });
-    }
-
     var logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn && !logoutBtn.dataset.bound) {
       logoutBtn.dataset.bound = "1";
@@ -4627,6 +4604,12 @@
               : "profile_viewer";
         document.getElementById("accountProfileUsername").textContent =
           me.username || "Discord";
+        var profileAvatar = document.getElementById("accountProfileAvatar");
+        if (profileAvatar) {
+          profileAvatar.classList.toggle("hidden", !me.avatarUrl);
+          if (me.avatarUrl) profileAvatar.src = me.avatarUrl;
+          else profileAvatar.removeAttribute("src");
+        }
         document.getElementById("accountProfileId").textContent = me.id || "—";
         document.getElementById("accountProfileRole").textContent = t(roleKey);
         var guildPicker = document.getElementById("guildPicker");

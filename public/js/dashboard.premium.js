@@ -498,6 +498,12 @@
     var activeCount = adminGuilds.filter(function (item) {
       return item.active === true;
     }).length;
+    var expiredCount = adminGuilds.filter(function (item) {
+      return item.enabled && !item.active;
+    }).length;
+    var disabledCount = adminGuilds.filter(function (item) {
+      return !item.enabled;
+    }).length;
     var now = Date.now();
     var expiringSoonCount = adminGuilds.filter(function (item) {
       var until = item.until ? new Date(item.until).getTime() : NaN;
@@ -509,17 +515,23 @@
       );
     }).length;
     if (summary) {
-      summary.textContent = t("premium_admin_summary", {
-        active: activeCount.toLocaleString(NS.state.lang),
-        total: adminGuilds.length.toLocaleString(NS.state.lang),
+      summary.replaceChildren();
+      [
+        [t("premium_admin_active"), activeCount, "is-active"],
+        [t("premium_admin_expired"), expiredCount, "is-expired"],
+        [t("premium_admin_disabled"), disabledCount, "is-disabled"],
+        [t("premium_admin_expiring_soon"), expiringSoonCount, "is-expiring"],
+      ].forEach(function (metric) {
+        var item = document.createElement("div");
+        item.className = "premium-admin-metric " + metric[2];
+        var value = document.createElement("strong");
+        value.textContent = metric[1].toLocaleString(NS.state.lang);
+        var label = document.createElement("span");
+        label.textContent = metric[0];
+        item.appendChild(value);
+        item.appendChild(label);
+        summary.appendChild(item);
       });
-      if (expiringSoonCount) {
-        summary.textContent +=
-          " · " +
-          t("premium_admin_expiring_soon_summary", {
-            count: expiringSoonCount.toLocaleString(NS.state.lang),
-          });
-      }
     }
     var items = adminGuilds.filter(function (item) {
       var matchesStatus =

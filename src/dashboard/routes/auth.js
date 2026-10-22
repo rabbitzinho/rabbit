@@ -480,6 +480,17 @@ function registerAuthRoutes(ctx) {
           maxLen: 32,
           stripHtml: true,
         });
+        const avatarHash = String(me.avatar || "");
+        const userId = String(me.id || "");
+        const hasCustomAvatar = /^(?:a_)?[a-f0-9]{8,64}$/i.test(avatarHash);
+        const defaultAvatarIndex = /^\d+$/.test(userId)
+          ? Number((BigInt(userId) >> 22n) % 6n)
+          : null;
+        const avatarUrl = hasCustomAvatar
+          ? `https://cdn.discordapp.com/avatars/${encodeURIComponent(userId)}/${avatarHash}.${avatarHash.startsWith("a_") ? "gif" : "png"}?size=64`
+          : defaultAvatarIndex === null
+            ? null
+            : `https://cdn.discordapp.com/embed/avatars/${defaultAvatarIndex}.png`;
 
         // Guild-scoped operations remain protected by the guild access middleware.
         const perms = botOwner
@@ -491,6 +502,7 @@ function registerAuthRoutes(ctx) {
             t: "oauth",
             sub: String(me.id),
             username: safeUsername,
+            avatarUrl,
             role: botOwner ? "BOT_OWNER" : "USER",
             permissions: perms,
             allowedGuildIds,
@@ -512,6 +524,7 @@ function registerAuthRoutes(ctx) {
           const scoped = await mintScopedToken({
             userId: String(me.id),
             username: safeUsername,
+            avatarUrl,
             allowedGuildIds,
             allowedGuilds,
             guildId: allowedGuildIds[0],
@@ -554,6 +567,7 @@ function registerAuthRoutes(ctx) {
   async function mintScopedToken({
     userId,
     username,
+    avatarUrl,
     allowedGuildIds,
     allowedGuilds,
     botGuildInventory,
@@ -594,6 +608,7 @@ function registerAuthRoutes(ctx) {
           maxLen: 32,
           stripHtml: true,
         }),
+        avatarUrl: typeof avatarUrl === "string" ? avatarUrl : null,
         role,
         permissions: perms,
         allowedGuildIds: allowed.slice(0, 200),
@@ -662,6 +677,7 @@ function registerAuthRoutes(ctx) {
         const token = await mintScopedToken({
           userId: String(u._id || u.sub || u.id || u.userId || ""),
           username: u.username || "discord",
+          avatarUrl: u.avatarUrl || null,
           allowedGuildIds: allowed,
           allowedGuilds: Array.isArray(u.allowedGuilds) ? u.allowedGuilds : [],
           botGuildInventory: Array.isArray(u.botGuildInventory)
@@ -708,6 +724,7 @@ function registerAuthRoutes(ctx) {
             maxLen: 32,
             stripHtml: true,
           }),
+          avatarUrl: user.avatarUrl || null,
           role: "BOT_OWNER",
           permissions: Object.assign({}, ADMIN_PERMISSIONS || {}, {
             canManageUsers: true,
@@ -746,6 +763,7 @@ function registerAuthRoutes(ctx) {
       user: {
         id: u._id || null,
         username: u.username || "discord",
+        avatarUrl: u.avatarUrl || null,
         role: u.role || "USER",
         permissions: u.permissions || {},
         allowedGuildIds: Array.isArray(u.allowedGuildIds)

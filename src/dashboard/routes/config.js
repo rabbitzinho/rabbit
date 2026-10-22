@@ -77,7 +77,7 @@ function registerConfigRoutes({
             ok: true,
             config: {
               guildId,
-              language: "auto",
+              language: "en",
               timezone: null,
               logChannelId: null,
               dashboardLogChannelId: null,
@@ -99,7 +99,7 @@ function registerConfigRoutes({
           ok: true,
           config: {
             guildId: doc.guildId,
-            language: doc.language || "auto",
+            language: doc.language || "en",
             timezone: doc.timezone || null,
             logChannelId: doc.logChannelId || null,
             dashboardLogChannelId: doc.dashboardLogChannelId || null,
